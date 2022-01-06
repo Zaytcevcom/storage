@@ -31,11 +31,11 @@ if ($data === Photo::ERROR_TYPE) {
 }
 
 if ($data === Photo::ERROR_FAIL_UPLOAD) {
-    return $controller->error(3, 'Fail file  upload!');
+    return $controller->error(3, 'Fail file upload!');
 }
 
 if ($data === Photo::ERROR_FAIL_MOVE) {
-    return $controller->error(4, 'Fail file  move!');
+    return $controller->error(4, 'Fail file move!');
 }
 
 if ($data === Photo::ERROR_MIN_SIZE) {

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace api\models;
 
-use api\entities\Audio;
+use api\entities\Video;
 use api\classes\Model;
 use getID3;
 
 /**
- * AudioModel
+ * VideoModel
  */
-class AudioModel extends Model
+class VideoModel extends Model
 {
     private $algo = 'sha1';
     private $mode = 0755; // mkdir mode
@@ -26,16 +26,24 @@ class AudioModel extends Model
     {
         global $config;
 
-        if ($config['audio']['secret_key'] != $secret_key) {
-            return Audio::ERROR_SECRET_KEY;
+        if ($config['video']['secret_key'] != $secret_key) {
+            return Video::ERROR_SECRET_KEY;
         }
 
-        $model = Audio::getByFileId($file_id);
+        $model = Video::getByFileId($file_id);
 
         if (empty($model)) {
-            return Audio::ERROR_NOT_FOUND;
+            return Video::ERROR_NOT_FOUND;
         }
 
+        // File sizes
+        $src_sizes = (!empty($model->sizes)) ? json_decode($model->sizes, true) : [];
+
+        foreach ($src_sizes as $key => $value) {
+            $src_sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
+        // File cover sizes
         $cover_sizes = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : [];
 
         foreach ($cover_sizes as $key => $value) {
@@ -46,6 +54,7 @@ class AudioModel extends Model
             'file_id'       => $model->file_id,
             'fields'        => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
             'src'           => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
+            'src_sizes'     => $src_sizes,
             'cover'         => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
             'cover_sizes'   => $cover_sizes,
             'duration'      => $model->duration,
@@ -72,24 +81,24 @@ class AudioModel extends Model
         global $config;
         
         if (!isset($files[$field])) {
-            return Audio::ERROR_FAIL_UPLOAD;
+            return Video::ERROR_FAIL_UPLOAD;
         }
 
         $file = $files[$field];
 
         if ($file->getError() !== UPLOAD_ERR_OK) {
-            return Audio::ERROR_FAIL_UPLOAD;
+            return Video::ERROR_FAIL_UPLOAD;
         }        
 
         $size = $file->getSize();
         $ext = strtolower(end(explode('.', $file->getClientFilename())));
 
         // Check type
-        if (!isset($config['audio']['type'][$type])) {
-            return Audio::ERROR_TYPE;
+        if (!isset($config['video']['type'][$type])) {
+            return Video::ERROR_TYPE;
         }
 
-        $typeInfo = $config['audio']['type'][$type];
+        $typeInfo = $config['video']['type'][$type];
 
         $fields = [];
 
@@ -97,7 +106,7 @@ class AudioModel extends Model
         if (isset($typeInfo['fields'])) {
             foreach ($typeInfo['fields'] as $value) {
                 if (!isset($requestParams[$value])) {
-                    return Audio::ERROR_REQUIRED_FIELDS;
+                    return Video::ERROR_REQUIRED_FIELDS;
                 }
 
                 $fields[$value] = $requestParams[$value];
@@ -105,55 +114,57 @@ class AudioModel extends Model
         }
 
         // Check min file size
-        if ($size < $config['audio']['minSize']) {
-            return Audio::ERROR_MIN_SIZE;
+        if ($size < $config['video']['minSize']) {
+            return Video::ERROR_MIN_SIZE;
         }
 
         // Check max file size
-        if ($config['audio']['maxSize'] < $size) {
-            return Audio::ERROR_MAX_SIZE;
+        if ($config['video']['maxSize'] < $size) {
+            return Video::ERROR_MAX_SIZE;
         }
 
         // Check file type
-        if (!in_array($ext, $config['audio']['allowTypes'])) {
-            return Audio::ERROR_ALLOW_TYPES;
+        if (!in_array($ext, $config['video']['allowTypes'])) {
+            return Video::ERROR_ALLOW_TYPES;
         }
 
         $hash = hash_file($this->algo, $_FILES[$field]['tmp_name']);
+        $sizes = [];
 
-        $result = $this->fileMove($config['audio']['dir'], $file, $hash);
+        $result = $this->fileMove($config['video']['dir'], $file, $hash);
 
         if (!isset($result['status']) || $result['status'] != true) {
-            return Audio::ERROR_FAIL_MOVE;
+            return Video::ERROR_FAIL_MOVE;
         }
 
         $getID3 = new getID3();
-        $audioInfo = $getID3->analyze(ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext']);
+        $videoInfo = $getID3->analyze(ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext']);
 
         while (true) {
 
             try {
-                $modelAudio = new Audio();
-                $modelAudio->file_id        = $this->uniqid();
-                $modelAudio->type           = $type;
-                $modelAudio->host           = $config['domain'];
-                $modelAudio->dir            = $result['dir'];
-                $modelAudio->name           = $result['name'];
-                $modelAudio->ext            = $result['ext'];
-                $modelAudio->fields         = json_encode($fields);
-                $modelAudio->size           = $result['size'];
-                $modelAudio->duration       = (int)$audioInfo['playtime_seconds'];
-                $modelAudio->hash           = $hash;
-                $modelAudio->cover_dir      = null;
-                $modelAudio->cover_name     = null;
-                $modelAudio->cover_ext      = null;
-                $modelAudio->cover_size     = null;
-                $modelAudio->cover_sizes    = null;
-                $modelAudio->time           = time();
-                $modelAudio->is_use         = 0;
-                $modelAudio->hide           = 0;
+                $modelVideo = new Video();
+                $modelVideo->file_id        = $this->uniqid();
+                $modelVideo->type           = $type;
+                $modelVideo->host           = $config['domain'];
+                $modelVideo->dir            = $result['dir'];
+                $modelVideo->name           = $result['name'];
+                $modelVideo->ext            = $result['ext'];
+                $modelVideo->fields         = json_encode($fields);
+                $modelVideo->size           = $result['size'];
+                $modelVideo->duration       = (int)$videoInfo['playtime_seconds'];
+                $modelVideo->hash           = $hash;
+                $modelVideo->sizes          = (!empty($sizes)) ? json_encode($sizes) : null;
+                $modelVideo->cover_dir      = null;
+                $modelVideo->cover_name     = null;
+                $modelVideo->cover_ext      = null;
+                $modelVideo->cover_size     = null;
+                $modelVideo->cover_sizes    = null;
+                $modelVideo->time           = time();
+                $modelVideo->is_use         = 0;
+                $modelVideo->hide           = 0;
                 
-                if ($modelAudio->save()) {
+                if ($modelVideo->save()) {
                     break;
                 }
 
@@ -163,8 +174,8 @@ class AudioModel extends Model
         }
 
         return [
-            'host'    => $config['scheme'] . '://' . $modelAudio->host,
-            'file_id' => $modelAudio->file_id
+            'host'    => $config['scheme'] . '://' . $modelVideo->host,
+            'file_id' => $modelVideo->file_id
         ];
     }
 
@@ -178,11 +189,11 @@ class AudioModel extends Model
     {
         global $config;
 
-        if ($config['audio']['secret_key'] != $secret_key) {
-            return Audio::ERROR_SECRET_KEY;
+        if ($config['video']['secret_key'] != $secret_key) {
+            return Video::ERROR_SECRET_KEY;
         }
 
-        $model = Audio::getByFileId($file_id);
+        $model = Video::getByFileId($file_id);
 
         if (empty($model)) {
             return 0;
@@ -202,11 +213,11 @@ class AudioModel extends Model
     {
         global $config;
 
-        if ($config['audio']['secret_key'] != $secret_key) {
-            return Audio::ERROR_SECRET_KEY;
+        if ($config['video']['secret_key'] != $secret_key) {
+            return Video::ERROR_SECRET_KEY;
         }
 
-        $model = Audio::getByFileId($file_id);
+        $model = Video::getByFileId($file_id);
 
         if (empty($model)) {
             return 0;
@@ -241,49 +252,11 @@ class AudioModel extends Model
 
         $count = 0;
 
-        $time = time() - $config['audio']['timeStorageNoUse'];
+        $time = time() - $config['video']['timeStorageNoUse'];
 
-        $models = Audio::where('is_use', 0)->where('time', '<=', $time)->take(50)->get();
+        $models = Video::where('is_use', 0)->where('time', '<=', $time)->take(50)->get();
 
-        foreach ($models as $model) {
-
-            // Delete audio
-            $path = ROOT_DIR . $model->dir . $model->name . '.' . $model->ext;
-
-            $success = (file_exists($path)) ? unlink($path) : true;
-
-            if (!$success) {
-                return -1;
-            }
-
-            // Delete cover
-            $cover_path = ROOT_DIR . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext;
-
-            $success = (file_exists($cover_path)) ? unlink($cover_path) : true;
-
-            if (!$success) {
-                return -1;
-            }
-
-            // Delete covers
-            $cover_sizes = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : [];
-
-            foreach ($cover_sizes as $size) {
-                
-                $path = ROOT_DIR . $size;
-                
-                if (file_exists($path)) {
-                    unlink($path);
-                }
-            }
-
-            if ($success) {
-                $model->delete();
-                $count++;
-            }
-        }
-
-        return $count;
+        return 0;
     }
 
 
@@ -302,7 +275,7 @@ class AudioModel extends Model
 
         $levelDefault = 4;
 
-        $level = (isset($config['audio']['level'])) ? $config['audio']['level'] : $levelDefault;
+        $level = (isset($config['video']['level'])) ? $config['video']['level'] : $levelDefault;
 
         try {
 

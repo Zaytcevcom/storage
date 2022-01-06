@@ -1,6 +1,6 @@
 <?php
 
-use api\entities\Audio;
+use api\entities\Video;
 
 if (!$controller->freeSpaceCheck()) {
     return $controller->freeSpaceError();
@@ -15,35 +15,35 @@ $requestParams = $controller->getParams();
 // Upload file
 $data = $model->upload($files, 'upload_file', $type, $requestParams);
 
-if ($data === Audio::ERROR_REQUIRED_FIELDS) {
+if ($data === Video::ERROR_REQUIRED_FIELDS) {
     return $controller->error(1, 'Missing a required field!');
 }
 
-if ($data === Audio::ERROR_TYPE) {
+if ($data === Video::ERROR_TYPE) {
     return $controller->error(2, 'Error type!');
 }
 
-if ($data === Audio::ERROR_FAIL_UPLOAD) {
+if ($data === Video::ERROR_FAIL_UPLOAD) {
     return $controller->error(3, 'Fail file upload!');
 }
 
-if ($data === Audio::ERROR_FAIL_MOVE) {
+if ($data === Video::ERROR_FAIL_MOVE) {
     return $controller->error(4, 'Fail file move!');
 }
 
-if ($data === Audio::ERROR_MIN_SIZE) {
+if ($data === Video::ERROR_MIN_SIZE) {
     return $controller->error(5, 'Error min file size!');
 }
 
-if ($data === Audio::ERROR_MAX_SIZE) {
+if ($data === Video::ERROR_MAX_SIZE) {
     return $controller->error(6, 'Error max file size!');
 }
 
-if ($data === Audio::ERROR_ALLOW_TYPES) {
+if ($data === Video::ERROR_ALLOW_TYPES) {
     return $controller->error(7, 'Error allow types!');
 }
 
-if ($data === Audio::ERROR_OPTIMIZE) {
+if ($data === Video::ERROR_OPTIMIZE) {
     return $controller->error(8, 'Error optimize file!');
 }
 
@@ -51,9 +51,9 @@ return $controller->success($data);
 
 /**
  * @OA\Post(
- *  path="/audio.upload",
- *  summary="Загрузка аудиозаписи",
- *  description="Загрузка аудиозаписи
+ *  path="/video.upload",
+ *  summary="Загрузка видеозаписи",
+ *  description="Загрузка видеозаписи
  *  **Коды ошибок:**
  *  1 - Missing a required field
  *  2 - Error type
@@ -63,7 +63,7 @@ return $controller->success($data);
  *  6 - Error max file size!
  *  7 - Error allow types!
  *  8 - Error optimize file!",
- *  tags={"Audio"},
+ *  tags={"Video"},
  *  @OA\Response(response=200, description="Successful operation"),
  *  @OA\Response(response=405, description="Invalid input")
  * )
