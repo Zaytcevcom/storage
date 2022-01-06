@@ -80,8 +80,6 @@ class VideoModel extends Model
      */
     public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $requestParams = [])
     {
-        return $files;
-        
         global $config;
         
         if (!isset($files[$field])) {
