@@ -141,15 +141,29 @@ class VideoModel extends Model
 
         $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext'];
 
+        // Get video info
         $getID3 = new getID3();
         $videoInfo = $getID3->analyze($path);
-
-        $ffmpeg = FFMpeg::create();
+        
+        $temp_path = ROOT_DIR . $config['temp']['dir'];
+        
+        if (!$this->checkDirIsExists($temp_path)) {
+            return Video::ERROR_FAIL_MOVE;
+        }
+        
+        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
+        // PHP -> disable_functions -> delete "proc_open"
+        $ffmpeg = FFMpeg::create([
+            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',   
+            'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
+        ]);
+        
+        // Create video preview
         $video = $ffmpeg->open($path);
         $video
             ->frame(TimeCode::fromSeconds(1))
-            ->save(ROOT_DIR . $config['video']['dir'] . '/frame.jpg');
-
+            ->save($temp_path . '/' . $result['name'] . '.jpg');
+        
         while (true) {
 
             try {
@@ -273,6 +287,22 @@ class VideoModel extends Model
     // MARK - private file methods
 
     /**
+     * Check dir is exists
+     * @param string $path
+     * @return bool
+     */
+    private function checkDirIsExists($path) : bool
+    {
+        if (!file_exists($path)) {
+            if (!mkdir($path, $this->mode, true)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
      * Move uploaded file file
      * @param string $directory
      * @param object $uploadedFile
@@ -302,13 +332,11 @@ class VideoModel extends Model
 
             $dir = ROOT_DIR . $directory . DIRECTORY_SEPARATOR . $basename;
             
-            if (!file_exists($dir)) {
-                if (!mkdir($dir, $this->mode, true)) {
-                    return [
-                        'status'    => false,
-                        'message'   => 'Can not create dir!'
-                    ];
-                }
+            if (!$this->checkDirIsExists($dir)) {
+                return [
+                    'status'    => false,
+                    'message'   => 'Can not create dir!'
+                ];
             }
 
             for ($i = 0; $i <= 100; $i++) {
