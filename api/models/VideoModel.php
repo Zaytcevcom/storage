@@ -168,6 +168,10 @@ class VideoModel extends Model
         // Upload video preview
         $PhotoModel = new PhotoModel();
         //$PhotoModel->upload(['upload_file' => ]);
+        
+        $getID3 = new getID3();
+        $photoInfo = $getID3->analyze($temp_path_name);
+        return $photoInfo;
 
         while (true) {
 
