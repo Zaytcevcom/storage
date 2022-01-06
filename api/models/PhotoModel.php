@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace api\models;
 
 use api\entities\Photo;
-use api\classes\Image;
 use api\classes\Model;
+use api\classes\Image;
 
 /**
  * PhotoModel

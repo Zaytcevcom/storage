@@ -13,8 +13,8 @@ class CoreController
     protected $args     = null;
     protected $params   = [];
 
-    private $scriptStart    = null;
-    private $scriptMemory   = null;
+    protected $scriptStart    = null;
+    protected $scriptMemory   = null;
 
     public function __construct($request, $response, $args)
     {
@@ -27,12 +27,6 @@ class CoreController
         
         // Set params
         $this->setParams();
-    }
-
-    public function __destruct()
-    {
-        // Api statistics
-        $this->statistics();
     }
 
     protected function setParams()
@@ -58,26 +52,6 @@ class CoreController
     public function getUploadedFiles()
     {
         return $this->request->getUploadedFiles();
-    }
-
-    public function statistics()
-    {
-        if (!isset($this->args['controller']) || !isset($this->args['action'])) {
-            return;
-        }
-
-        $className = '\api\models\Statistics';
-
-        if (class_exists($className)) {
-            $model = new $className();
-            $model->controller  = $this->args['controller'];
-            $model->action      = $this->args['action'];
-            $model->duration    = microtime(true) - $this->scriptStart;
-            $model->memory      = memory_get_usage() - $this->scriptMemory;
-            $model->ip          = $this->request->getAttribute('ip_address');
-            $model->time        = time();
-            $model->save();
-        }
     }
 
     /* *** Check request params ********************************* */
@@ -272,6 +246,40 @@ class CoreController
         ];
 
         return $this->failure($data, 403, $data['message']);
+    }
+
+    /* *** UserAgent ******************************************** */
+
+    /**
+     * Get user agent
+     * @return mixed
+     */
+    public function getUserAgent()
+    {
+        if (!$this->request->hasHeader('User-Agent')) {
+            return null;
+        }
+
+        return $this->request->getHeaderLine('User-Agent');
+    }
+
+    /* *** IP *************************************************** */
+
+    /**
+     * Get user agent
+     * @return mixed
+     */
+    public function getUserIP()
+    {
+        if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            return $_SERVER['HTTP_CF_CONNECTING_IP'];
+        }
+
+        if (empty($this->request->getAttribute('ip_address'))) {
+            return null;
+        }
+
+        return $this->request->getAttribute('ip_address');
     }
 
     /* *** Space ************************************************ */

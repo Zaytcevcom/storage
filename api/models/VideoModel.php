@@ -6,6 +6,8 @@ namespace api\models;
 
 use api\entities\Video;
 use api\classes\Model;
+use FFMpeg\Coordinate\TimeCode;
+use FFMpeg\FFMpeg;
 use getID3;
 
 /**
@@ -137,8 +139,16 @@ class VideoModel extends Model
             return Video::ERROR_FAIL_MOVE;
         }
 
+        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext'];
+
         $getID3 = new getID3();
-        $videoInfo = $getID3->analyze(ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext']);
+        $videoInfo = $getID3->analyze($path);
+
+        $ffmpeg = FFMpeg::create();
+        $video = $ffmpeg->open($path);
+        $video
+            ->frame(TimeCode::fromSeconds(10))
+            ->save(ROOT_DIR . $config['video']['dir'] . '/frame.jpg');
 
         while (true) {
 
