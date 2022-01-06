@@ -80,6 +80,8 @@ class VideoModel extends Model
      */
     public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $requestParams = [])
     {
+        return $files;
+        
         global $config;
         
         if (!isset($files[$field])) {
@@ -151,19 +153,23 @@ class VideoModel extends Model
             return Video::ERROR_FAIL_MOVE;
         }
         
-        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
-        // PHP -> disable_functions -> delete "proc_open"
+        // Create video preview
         $ffmpeg = FFMpeg::create([
-            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',   
+            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',
             'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
         ]);
         
-        // Create video preview
+        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
+        // PHP -> disable_functions -> delete "proc_open"
         $video = $ffmpeg->open($path);
         $video
             ->frame(TimeCode::fromSeconds(1))
             ->save($temp_path . '/' . $result['name'] . '.jpg');
         
+        // Upload video preview
+        $PhotoModel = new PhotoModel();
+        //$PhotoModel->upload(['upload_file' => ]);
+
         while (true) {
 
             try {
