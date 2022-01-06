@@ -80,8 +80,6 @@ class VideoModel extends Model
      */
     public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $requestParams = [])
     {
-        return $files;
-        
         global $config;
         
         if (!isset($files[$field])) {
@@ -147,9 +145,10 @@ class VideoModel extends Model
         $getID3 = new getID3();
         $videoInfo = $getID3->analyze($path);
         
-        $temp_path = ROOT_DIR . $config['temp']['dir'];
+        $temp_path_dir = ROOT_DIR . $config['temp']['dir'];
+        $temp_path_name = $temp_path_dir . '/' . $result['name'] . '.jpg';
         
-        if (!$this->checkDirIsExists($temp_path)) {
+        if (!$this->checkDirIsExists($temp_path_dir)) {
             return Video::ERROR_FAIL_MOVE;
         }
         
@@ -164,7 +163,7 @@ class VideoModel extends Model
         $video = $ffmpeg->open($path);
         $video
             ->frame(TimeCode::fromSeconds(1))
-            ->save($temp_path . '/' . $result['name'] . '.jpg');
+            ->save($temp_path_name);
         
         // Upload video preview
         $PhotoModel = new PhotoModel();
