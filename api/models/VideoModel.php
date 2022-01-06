@@ -147,7 +147,7 @@ class VideoModel extends Model
         $ffmpeg = FFMpeg::create();
         $video = $ffmpeg->open($path);
         $video
-            ->frame(TimeCode::fromSeconds(10))
+            ->frame(TimeCode::fromSeconds(1))
             ->save(ROOT_DIR . $config['video']['dir'] . '/frame.jpg');
 
         while (true) {
