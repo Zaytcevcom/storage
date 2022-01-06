@@ -7,6 +7,7 @@ namespace api\models;
 use api\entities\Photo;
 use api\classes\Model;
 use api\classes\Image;
+use getID3;
 
 /**
  * PhotoModel
@@ -70,20 +71,31 @@ class PhotoModel extends Model
      */
     public function upload(array $files = [], string $field = 'upload_file', string $type = null, int $rotate = null, array $crop = null, array $requestParams = [])
     {
-        global $config;
-        
-        if (!isset($files[$field])) {
+        if (!isset($files[$field]) || !isset($_FILES[$field]['tmp_name'])) {
             return Photo::ERROR_FAIL_UPLOAD;
         }
 
-        $file = $files[$field];
+        return $this->uploadByPath(
+            $_FILES[$field]['tmp_name'],
+            $type,
+            $rotate,
+            $crop,
+            $requestParams
+        );
+    }
 
-        if ($file->getError() !== UPLOAD_ERR_OK) {
-            return Photo::ERROR_FAIL_UPLOAD;
-        }        
-
-        $size = $file->getSize();
-        $ext = strtolower(end(explode('.', $file->getClientFilename())));
+    /**
+     * Upload file by path
+     * @param string $file_temp_path
+     * @param string|null $type
+     * @param int|null $rotate
+     * @param array|null $crop
+     * @param array $requestParams
+     * @return array
+     */
+    public function uploadByPath(string $file_temp_path, string $type = null, int $rotate = null, array $crop = null, array $requestParams = [])
+    {
+        global $config;
 
         // Check type
         if (!isset($config['photo']['type'][$type])) {
@@ -105,6 +117,17 @@ class PhotoModel extends Model
             }
         }
 
+        // Get file info
+        $getID3 = new getID3();
+        $imageInfo = $getID3->analyze($file_temp_path);
+
+        if (!isset($imageInfo['filesize']) || !isset($imageInfo['fileformat'])) {
+            return Photo::ERROR_FAIL_UPLOAD;
+        }
+
+        $size   = $imageInfo['filesize'];
+        $ext    = $imageInfo['fileformat'];
+
         // Check min file size
         if ($size < $config['photo']['minSize']) {
             return Photo::ERROR_MIN_SIZE;
@@ -120,9 +143,9 @@ class PhotoModel extends Model
             return Photo::ERROR_ALLOW_TYPES;
         }
 
-        $hash = hash_file($this->algo, $_FILES[$field]['tmp_name']);
+        $hash = hash_file($this->algo, $file_temp_path);
 
-        $result = $this->fileMove($config['photo']['dir'], $file, $hash);
+        $result = $this->fileMove($config['photo']['dir'], $file_temp_path, $hash);
 
         if (!isset($result['status']) || $result['status'] != true) {
             return Photo::ERROR_FAIL_MOVE;
@@ -132,19 +155,19 @@ class PhotoModel extends Model
 
             try {
                 $modelPhoto = new Photo();
-                $modelPhoto->file_id = $this->uniqid();
-                $modelPhoto->type = $type;
-                $modelPhoto->host = $config['domain'];
-                $modelPhoto->dir = $result['dir'];
-                $modelPhoto->name = $result['name'];
-                $modelPhoto->ext = $result['ext'];
-                $modelPhoto->fields = json_encode($fields);
-                $modelPhoto->size = $result['size'];
-                $modelPhoto->hash = $hash;
-                $modelPhoto->sizes = json_encode([]);
-                $modelPhoto->time = time();
-                $modelPhoto->is_use = 0;
-                $modelPhoto->hide = 0;
+                $modelPhoto->file_id    = $this->uniqid();
+                $modelPhoto->type       = $type;
+                $modelPhoto->host       = $config['domain'];
+                $modelPhoto->dir        = $result['dir'];
+                $modelPhoto->name       = $result['name'];
+                $modelPhoto->ext        = $ext;
+                $modelPhoto->fields     = json_encode($fields);
+                $modelPhoto->size       = $size;
+                $modelPhoto->hash       = $hash;
+                $modelPhoto->sizes      = json_encode([]);
+                $modelPhoto->time       = time();
+                $modelPhoto->is_use     = 0;
+                $modelPhoto->hide       = 0;
                 
                 if ($modelPhoto->save()) {
                     break;
@@ -464,11 +487,11 @@ class PhotoModel extends Model
     /**
      * Move uploaded file file
      * @param string $directory
-     * @param object $uploadedFile
+     * @param string $file_temp_path
      * @param string $hash
      * @return array
      */
-    private function fileMove(string $directory, $uploadedFile, string $hash)
+    private function fileMove(string $directory, $file_temp_path, string $hash)
     {
         global $config;
 
@@ -478,7 +501,7 @@ class PhotoModel extends Model
 
         try {
 
-            $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+            $extension = pathinfo($file_temp_path, PATHINFO_EXTENSION);
 
             if (strlen($hash) < $level * 2) {
                 $level = $levelDefault;
@@ -517,14 +540,14 @@ class PhotoModel extends Model
                 }
             }
 
-            $uploadedFile->moveTo($path);
+            //$uploadedFile->moveTo($path);
+
+            rename($file_temp_path, $path);
 
             return [
                 'status'     => true,
                 'dir'        => $directory . '/' . $basename . '/',
                 'name'       => $filename,
-                'ext'        => $extension,
-                'size'       => $uploadedFile->getSize(),
             ];
 
         } catch (\Exception $exception) {
