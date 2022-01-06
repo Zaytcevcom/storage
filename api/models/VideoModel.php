@@ -167,7 +167,31 @@ class VideoModel extends Model
         
         // Upload video preview
         $PhotoModel = new PhotoModel();
-        $r = $PhotoModel->uploadByPath($temp_path_name, "1", null, null, ['unique_id' => 1]);
+        $response = $PhotoModel->uploadByPath($temp_path_name, "1", null, null, ['unique_id' => 1]);
+        
+        $coverInfo = [
+            'dir'   => null,
+            'name'  => null,
+            'ext'   => null,
+            'size'  => null,
+            'sizes' => null
+        ];
+        
+        if (isset($response['file_id'])) {
+            
+            $responseCover = $PhotoModel->get($response['file_id'], $config['photo']['secret_key']);
+            
+            if (isset($responseCover['file_id'])) {
+                $coverInfo = [
+                    'dir'   => null,
+                    'name'  => null,
+                    'ext'   => '.jpg',
+                    'size'  => $responseCover['size'],
+                    'sizes' => $responseCover['sizes']
+                ];
+            }
+        }
+        
         return $r;
         
         while (true) {
@@ -185,11 +209,11 @@ class VideoModel extends Model
                 $modelVideo->duration       = (int)$videoInfo['playtime_seconds'];
                 $modelVideo->hash           = $hash;
                 $modelVideo->sizes          = (!empty($sizes)) ? json_encode($sizes) : null;
-                $modelVideo->cover_dir      = null;
-                $modelVideo->cover_name     = null;
-                $modelVideo->cover_ext      = null;
-                $modelVideo->cover_size     = null;
-                $modelVideo->cover_sizes    = null;
+                $modelVideo->cover_dir      = $coverInfo['dir'];
+                $modelVideo->cover_name     = $coverInfo['name'];
+                $modelVideo->cover_ext      = $coverInfo['ext'];
+                $modelVideo->cover_size     = $coverInfo['size'];
+                $modelVideo->cover_sizes    = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
                 $modelVideo->time           = time();
                 $modelVideo->is_use         = 0;
                 $modelVideo->hide           = 0;

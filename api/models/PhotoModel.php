@@ -124,7 +124,7 @@ class PhotoModel extends Model
         if (!isset($imageInfo['filesize']) || !isset($imageInfo['fileformat'])) {
             return Photo::ERROR_FAIL_UPLOAD;
         }
-
+        
         $size   = $imageInfo['filesize'];
         $ext    = $imageInfo['fileformat'];
 
@@ -178,7 +178,7 @@ class PhotoModel extends Model
             }
         }
 
-        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext'];
+        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $ext;
 
         // Optimize and orientation image
         if ($config['photo']['minSizeOptimize'] < $size) {
