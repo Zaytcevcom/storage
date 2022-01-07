@@ -325,7 +325,10 @@ class AudioModel extends Model
 
         try {
 
-            $extension = pathinfo($file_temp_path, PATHINFO_EXTENSION);
+            // Get file info
+            $getID3 = new getID3();
+            $fileInfo = $getID3->analyze($file_temp_path);
+            $extension = $fileInfo['fileformat'];
 
             if (strlen($hash) < $level * 2) {
                 $level = $levelDefault;
