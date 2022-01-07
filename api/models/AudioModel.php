@@ -124,7 +124,7 @@ class AudioModel extends Model
         }
         
         $size   = $audioInfo['filesize'];
-        $ext    = pathinfo($file_temp_path, PATHINFO_EXTENSION);
+        $ext    = $audioInfo['fileformat'];
 
         // Check min file size
         if ($size < $config['audio']['minSize']) {

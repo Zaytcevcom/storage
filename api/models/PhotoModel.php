@@ -130,7 +130,7 @@ class PhotoModel extends Model
         }
         
         $size   = $imageInfo['filesize'];
-        $ext    = pathinfo($file_temp_path, PATHINFO_EXTENSION);
+        $ext    = $imageInfo['fileformat'];
 
         // Check min file size
         if ($size < $config['photo']['minSize']) {
