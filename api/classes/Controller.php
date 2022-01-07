@@ -16,7 +16,7 @@ class Controller extends CoreController
 
     public function statistics()
     {
-        if (!isset($this->args['controller']) || !isset($this->args['action'])) {
+        if (!isset($this->args['model']) || !isset($this->args['action'])) {
             return;
         }
 
@@ -24,7 +24,7 @@ class Controller extends CoreController
 
         if (class_exists($className)) {
             $model = new $className();
-            $model->controller  = $this->args['controller'];
+            $model->model       = $this->args['model'];
             $model->action      = $this->args['action'];
             $model->duration    = microtime(true) - $this->scriptStart;
             $model->memory      = memory_get_usage() - $this->scriptMemory;

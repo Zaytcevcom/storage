@@ -8,7 +8,7 @@ use api\classes\Entity;
 
 /**
  * @property int $id
- * @property string $controller
+ * @property string $model
  * @property string $action
  * @property double $duration
  * @property double $memory
@@ -20,7 +20,7 @@ class Statistics extends Entity
     protected $table = '_statistics';
 
     protected $fillable = [
-        'controller',
+        'model',
         'action',
         'duration',
         'memory',
@@ -30,7 +30,7 @@ class Statistics extends Entity
 
     protected $casts = [
         'id'            => 'integer',
-        'controller'    => 'string',
+        'model'         => 'string',
         'action'        => 'string',
         'duration'      => 'double',
         'memory'        => 'double',

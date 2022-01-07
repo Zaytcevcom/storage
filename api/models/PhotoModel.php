@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace api\models;
 
 use api\entities\Photo;
+use api\entities\Cover;
 use api\classes\Model;
 use api\classes\Image;
 use getID3;
@@ -259,7 +260,7 @@ class PhotoModel extends Model
         while (true) {
 
             try {
-                $modelCover = new Photo();
+                $modelCover = new Cover();
                 $modelCover->file_id    = $this->uniqid();
                 $modelCover->media_type = $media_type;
                 $modelCover->type       = $type;
