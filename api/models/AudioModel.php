@@ -64,25 +64,36 @@ class AudioModel extends Model
      * @param array $files
      * @param string $field
      * @param string|null $type
-     * @param array $requestParams
-     * @return array
+     * @param array $params
+     * @return mixed
      */
-    public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $requestParams = [])
+    public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $params = [])
     {
-        global $config;
-        
-        if (!isset($files[$field])) {
+        if (!isset($files[$field]) || !isset($_FILES[$field]['tmp_name'])) {
             return Audio::ERROR_FAIL_UPLOAD;
         }
 
-        $file = $files[$field];
+        return $this->uploadByTempPath(
+            $_FILES[$field]['tmp_name'],
+            $type,
+            $params
+        );
+    }
 
-        if ($file->getError() !== UPLOAD_ERR_OK) {
+    /**
+     * Upload file by temp path
+     * @param string|null $file_temp_path
+     * @param string|null $type
+     * @param array $params
+     * @return array
+     */
+    public function uploadByTempPath(string $file_temp_path = null, string $type = null, array $params = [])
+    {
+        global $config;
+        
+        if (empty($file_temp_path)) {
             return Audio::ERROR_FAIL_UPLOAD;
-        }        
-
-        $size = $file->getSize();
-        $ext = strtolower(end(explode('.', $file->getClientFilename())));
+        }
 
         // Check type
         if (!isset($config['audio']['type'][$type])) {
@@ -96,13 +107,24 @@ class AudioModel extends Model
         // Check fields
         if (isset($typeInfo['fields'])) {
             foreach ($typeInfo['fields'] as $value) {
-                if (!isset($requestParams[$value])) {
+                if (!isset($params[$value])) {
                     return Audio::ERROR_REQUIRED_FIELDS;
                 }
 
-                $fields[$value] = $requestParams[$value];
+                $fields[$value] = $params[$value];
             }
         }
+
+        // Get file info
+        $getID3 = new getID3();
+        $audioInfo = $getID3->analyze($file_temp_path);
+
+        if (!isset($audioInfo['filesize']) || !isset($audioInfo['fileformat'])) {
+            return Audio::ERROR_FAIL_UPLOAD;
+        }
+        
+        $size   = $audioInfo['filesize'];
+        $ext    = $audioInfo['fileformat'];
 
         // Check min file size
         if ($size < $config['audio']['minSize']) {
@@ -119,16 +141,13 @@ class AudioModel extends Model
             return Audio::ERROR_ALLOW_TYPES;
         }
 
-        $hash = hash_file($this->algo, $_FILES[$field]['tmp_name']);
+        $hash = hash_file($this->algo, $file_temp_path);
 
-        $result = $this->fileMove($config['audio']['dir'], $file, $hash);
+        $result = $this->fileMove($config['audio']['dir'], $file_temp_path, $hash);
 
         if (!isset($result['status']) || $result['status'] != true) {
             return Audio::ERROR_FAIL_MOVE;
         }
-
-        $getID3 = new getID3();
-        $audioInfo = $getID3->analyze(ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext']);
 
         while (true) {
 
@@ -139,9 +158,9 @@ class AudioModel extends Model
                 $modelAudio->host           = $config['domain'];
                 $modelAudio->dir            = $result['dir'];
                 $modelAudio->name           = $result['name'];
-                $modelAudio->ext            = $result['ext'];
+                $modelAudio->ext            = $ext;
                 $modelAudio->fields         = json_encode($fields);
-                $modelAudio->size           = $result['size'];
+                $modelAudio->size           = $size;
                 $modelAudio->duration       = (int)$audioInfo['playtime_seconds'];
                 $modelAudio->hash           = $hash;
                 $modelAudio->cover_dir      = null;
@@ -292,11 +311,11 @@ class AudioModel extends Model
     /**
      * Move uploaded file file
      * @param string $directory
-     * @param object $uploadedFile
+     * @param string $file_temp_path
      * @param string $hash
      * @return array
      */
-    private function fileMove(string $directory, $uploadedFile, string $hash)
+    private function fileMove(string $directory, $file_temp_path, string $hash)
     {
         global $config;
 
@@ -306,7 +325,7 @@ class AudioModel extends Model
 
         try {
 
-            $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+            $extension = pathinfo($file_temp_path, PATHINFO_EXTENSION);
 
             if (strlen($hash) < $level * 2) {
                 $level = $levelDefault;
@@ -345,14 +364,12 @@ class AudioModel extends Model
                 }
             }
 
-            $uploadedFile->moveTo($path);
+            rename($file_temp_path, $path);
 
             return [
                 'status'     => true,
                 'dir'        => $directory . '/' . $basename . '/',
                 'name'       => $filename,
-                'ext'        => $extension,
-                'size'       => $uploadedFile->getSize(),
             ];
 
         } catch (\Exception $exception) {

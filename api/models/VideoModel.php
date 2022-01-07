@@ -75,25 +75,36 @@ class VideoModel extends Model
      * @param array $files
      * @param string $field
      * @param string|null $type
-     * @param array $requestParams
-     * @return array
+     * @param array $params
+     * @return mixed
      */
-    public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $requestParams = [])
+    public function upload(array $files = [], string $field = 'upload_file', string $type = null, array $params = [])
     {
-        global $config;
-        
-        if (!isset($files[$field])) {
+        if (!isset($files[$field]) || !isset($_FILES[$field]['tmp_name'])) {
             return Video::ERROR_FAIL_UPLOAD;
         }
 
-        $file = $files[$field];
+        return $this->uploadByTempPath(
+            $_FILES[$field]['tmp_name'],
+            $type,
+            $params
+        );
+    }
 
-        if ($file->getError() !== UPLOAD_ERR_OK) {
+    /**
+     * Upload file by temp path
+     * @param string|null $file_temp_path
+     * @param string|null $type
+     * @param array $params
+     * @return mixed
+     */
+    public function uploadByTempPath(string $file_temp_path = null, string $type = null, array $params = [])
+    {
+        global $config;
+
+        if (empty($file_temp_path)) {
             return Video::ERROR_FAIL_UPLOAD;
-        }        
-
-        $size = $file->getSize();
-        $ext = strtolower(end(explode('.', $file->getClientFilename())));
+        }
 
         // Check type
         if (!isset($config['video']['type'][$type])) {
@@ -107,13 +118,24 @@ class VideoModel extends Model
         // Check fields
         if (isset($typeInfo['fields'])) {
             foreach ($typeInfo['fields'] as $value) {
-                if (!isset($requestParams[$value])) {
+                if (!isset($params[$value])) {
                     return Video::ERROR_REQUIRED_FIELDS;
                 }
 
-                $fields[$value] = $requestParams[$value];
+                $fields[$value] = $params[$value];
             }
         }
+
+        // Get file info
+        $getID3 = new getID3();
+        $videoInfo = $getID3->analyze($file_temp_path);
+
+        if (!isset($videoInfo['filesize']) || !isset($videoInfo['fileformat'])) {
+            return Video::ERROR_FAIL_UPLOAD;
+        }
+        
+        $size   = $videoInfo['filesize'];
+        $ext    = $videoInfo['fileformat'];
 
         // Check min file size
         if ($size < $config['video']['minSize']) {
@@ -130,69 +152,20 @@ class VideoModel extends Model
             return Video::ERROR_ALLOW_TYPES;
         }
 
-        $hash = hash_file($this->algo, $_FILES[$field]['tmp_name']);
-        $sizes = [];
+        $hash = hash_file($this->algo, $file_temp_path);
 
-        $result = $this->fileMove($config['video']['dir'], $file, $hash);
+        $result = $this->fileMove($config['video']['dir'], $file_temp_path, $hash);
 
         if (!isset($result['status']) || $result['status'] != true) {
             return Video::ERROR_FAIL_MOVE;
         }
 
-        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $result['ext'];
+        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $ext;
+        
+        // Get video cover info
+        $coverInfo = $this->createVideoCover($path);
 
-        // Get video info
-        $getID3 = new getID3();
-        $videoInfo = $getID3->analyze($path);
-        
-        $temp_path_dir = ROOT_DIR . $config['temp']['dir'];
-        $temp_path_name = $temp_path_dir . '/' . $result['name'] . '.jpg';
-        
-        if (!$this->checkDirIsExists($temp_path_dir)) {
-            return Video::ERROR_FAIL_MOVE;
-        }
-        
-        // Create video preview
-        $ffmpeg = FFMpeg::create([
-            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',
-            'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
-        ]);
-        
-        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
-        // PHP -> disable_functions -> delete "proc_open"
-        $video = $ffmpeg->open($path);
-        $video
-            ->frame(TimeCode::fromSeconds(1))
-            ->save($temp_path_name);
-        
-        // Upload video preview
-        $PhotoModel = new PhotoModel();
-        $response = $PhotoModel->uploadByPath($temp_path_name, "1", null, null, ['unique_id' => 1]);
-        
-        $coverInfo = [
-            'dir'   => null,
-            'name'  => null,
-            'ext'   => null,
-            'size'  => null,
-            'sizes' => null
-        ];
-        
-        if (isset($response['file_id'])) {
-            
-            $responseCover = $PhotoModel->get($response['file_id'], $config['photo']['secret_key']);
-            
-            if (isset($responseCover['file_id'])) {
-                $coverInfo = [
-                    'dir'   => null,
-                    'name'  => null,
-                    'ext'   => '.jpg',
-                    'size'  => $responseCover['size'],
-                    'sizes' => $responseCover['sizes']
-                ];
-            }
-        }
-        
-        return $r;
+        return $coverInfo;
         
         while (true) {
 
@@ -203,12 +176,12 @@ class VideoModel extends Model
                 $modelVideo->host           = $config['domain'];
                 $modelVideo->dir            = $result['dir'];
                 $modelVideo->name           = $result['name'];
-                $modelVideo->ext            = $result['ext'];
+                $modelVideo->ext            = $ext;
                 $modelVideo->fields         = json_encode($fields);
-                $modelVideo->size           = $result['size'];
+                $modelVideo->size           = $size;
                 $modelVideo->duration       = (int)$videoInfo['playtime_seconds'];
                 $modelVideo->hash           = $hash;
-                $modelVideo->sizes          = (!empty($sizes)) ? json_encode($sizes) : null;
+                $modelVideo->sizes          = null;
                 $modelVideo->cover_dir      = $coverInfo['dir'];
                 $modelVideo->cover_name     = $coverInfo['name'];
                 $modelVideo->cover_ext      = $coverInfo['ext'];
@@ -231,6 +204,64 @@ class VideoModel extends Model
             'host'    => $config['scheme'] . '://' . $modelVideo->host,
             'file_id' => $modelVideo->file_id
         ];
+    }
+
+    /**
+     * Create video cover info
+     * @param string $path
+     * @return array
+     */
+    private function createVideoCover($path)
+    {
+        global $config;
+
+        $result = [
+            'dir'   => null,
+            'name'  => null,
+            'ext'   => null,
+            'size'  => null,
+            'sizes' => null
+        ];
+
+        $ext            = 'jpg';
+        $temp_path_dir  = ROOT_DIR . $config['temp']['dir'];
+        $temp_path_name = $temp_path_dir . '/' . pathinfo($path, PATHINFO_FILENAME) . '.' . $ext;
+        
+        if (!$this->checkDirIsExists($temp_path_dir)) {
+            return $result;
+        }
+        
+        // Create video preview
+        $ffmpeg = FFMpeg::create([
+            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',
+            'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
+        ]);
+        
+        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
+        // PHP -> disable_functions -> delete "proc_open"
+        $video = $ffmpeg->open($path);
+        $video->frame(TimeCode::fromSeconds(1))->save($temp_path_name);
+        
+        // Upload video preview
+        $PhotoModel = new PhotoModel();
+        $response = $PhotoModel->uploadByTempPath($temp_path_name, "1", null, null, ['unique_id' => 1]);
+
+        if (isset($response['file_id'])) {
+            
+            $responseCover = $PhotoModel->get($response['file_id'], $config['photo']['secret_key']);
+            
+            if (isset($responseCover['file_id'])) {
+                $result = [
+                    'dir'   => null,
+                    'name'  => null,
+                    'ext'   => '.' . $ext,
+                    'size'  => $responseCover['size'],
+                    'sizes' => $responseCover['sizes']
+                ];
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -335,11 +366,11 @@ class VideoModel extends Model
     /**
      * Move uploaded file file
      * @param string $directory
-     * @param object $uploadedFile
+     * @param string $file_temp_path
      * @param string $hash
      * @return array
      */
-    private function fileMove(string $directory, $uploadedFile, string $hash)
+    private function fileMove(string $directory, $file_temp_path, string $hash)
     {
         global $config;
 
@@ -349,7 +380,7 @@ class VideoModel extends Model
 
         try {
 
-            $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+            $extension = pathinfo($file_temp_path, PATHINFO_EXTENSION);
 
             if (strlen($hash) < $level * 2) {
                 $level = $levelDefault;
@@ -386,14 +417,12 @@ class VideoModel extends Model
                 }
             }
 
-            $uploadedFile->moveTo($path);
+            rename($file_temp_path, $path);
 
             return [
                 'status'     => true,
                 'dir'        => $directory . '/' . $basename . '/',
                 'name'       => $filename,
-                'ext'        => $extension,
-                'size'       => $uploadedFile->getSize(),
             ];
 
         } catch (\Exception $exception) {

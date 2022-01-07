@@ -66,36 +66,40 @@ class PhotoModel extends Model
      * @param string|null $type
      * @param int|null $rotate
      * @param array|null $crop
-     * @param array $requestParams
-     * @return array
+     * @param array $params
+     * @return mixed
      */
-    public function upload(array $files = [], string $field = 'upload_file', string $type = null, int $rotate = null, array $crop = null, array $requestParams = [])
+    public function upload(array $files = [], string $field = 'upload_file', string $type = null, int $rotate = null, array $crop = null, array $params = [])
     {
         if (!isset($files[$field]) || !isset($_FILES[$field]['tmp_name'])) {
             return Photo::ERROR_FAIL_UPLOAD;
         }
 
-        return $this->uploadByPath(
+        return $this->uploadByTempPath(
             $_FILES[$field]['tmp_name'],
             $type,
             $rotate,
             $crop,
-            $requestParams
+            $params
         );
     }
 
     /**
-     * Upload file by path
-     * @param string $file_temp_path
+     * Upload file by temp path
+     * @param string|null $file_temp_path
      * @param string|null $type
      * @param int|null $rotate
      * @param array|null $crop
-     * @param array $requestParams
-     * @return array
+     * @param array $params
+     * @return mixed
      */
-    public function uploadByPath(string $file_temp_path, string $type = null, int $rotate = null, array $crop = null, array $requestParams = [])
+    public function uploadByTempPath(string $file_temp_path = null, string $type = null, int $rotate = null, array $crop = null, array $params = [])
     {
         global $config;
+
+        if (empty($file_temp_path)) {
+            return Photo::ERROR_FAIL_UPLOAD;
+        }
 
         // Check type
         if (!isset($config['photo']['type'][$type])) {
@@ -109,11 +113,11 @@ class PhotoModel extends Model
         // Check fields
         if (isset($typeInfo['fields'])) {
             foreach ($typeInfo['fields'] as $value) {
-                if (!isset($requestParams[$value])) {
+                if (!isset($params[$value])) {
                     return Photo::ERROR_REQUIRED_FIELDS;
                 }
 
-                $fields[$value] = $requestParams[$value];
+                $fields[$value] = $params[$value];
             }
         }
 
@@ -539,8 +543,6 @@ class PhotoModel extends Model
                     break;
                 }
             }
-
-            //$uploadedFile->moveTo($path);
 
             rename($file_temp_path, $path);
 
