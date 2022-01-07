@@ -149,6 +149,8 @@ class AudioModel extends Model
             return Audio::ERROR_FAIL_MOVE;
         }
 
+        $modelAudio = null;
+
         while (true) {
 
             try {

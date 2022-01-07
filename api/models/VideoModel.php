@@ -167,6 +167,8 @@ class VideoModel extends Model
 
         return $coverInfo;
         
+        $modelVideo = null;
+
         while (true) {
 
             try {
@@ -237,28 +239,24 @@ class VideoModel extends Model
             'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
         ]);
         
-        // https://stackoverflow.com/questions/29916963/laravel-unable-to-load-ffprobe
-        // PHP -> disable_functions -> delete "proc_open"
+        // PHP settings -> disable_functions -> delete "proc_open"
         $video = $ffmpeg->open($path);
         $video->frame(TimeCode::fromSeconds(1))->save($temp_path_name);
         
-        // Upload video preview
+        // Upload video cover
         $PhotoModel = new PhotoModel();
-        $response = $PhotoModel->uploadByTempPath($temp_path_name, "1", null, null, ['unique_id' => 1]);
+        $response = $PhotoModel->uploadCoverByTempPath($temp_path_name, 'video', '1');
+
+        return $response;
 
         if (isset($response['file_id'])) {
-            
-            $responseCover = $PhotoModel->get($response['file_id'], $config['photo']['secret_key']);
-            
-            if (isset($responseCover['file_id'])) {
-                $result = [
-                    'dir'   => null,
-                    'name'  => null,
-                    'ext'   => '.' . $ext,
-                    'size'  => $responseCover['size'],
-                    'sizes' => $responseCover['sizes']
-                ];
-            }
+            $result = [
+                'dir'   => $response['dir'],
+                'name'  => $response['name'],
+                'ext'   => $response['ext'],
+                'size'  => $response['size'],
+                'sizes' => $response['sizes']
+            ];
         }
 
         return $result;

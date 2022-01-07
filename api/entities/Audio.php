@@ -18,6 +18,7 @@ use api\classes\Entity;
  * @property double $size
  * @property int $duration
  * @property string $hash
+ * @property string|null $sizes
  * @property string|null $cover_dir
  * @property string|null $cover_name
  * @property string|null $cover_ext
@@ -42,6 +43,7 @@ class Audio extends Entity
         'size',
         'duration',
         'hash',
+        'sizes',
         'cover_dir',
         'cover_name',
         'cover_ext',
@@ -64,6 +66,7 @@ class Audio extends Entity
         'size'         => 'double',
         'duration'     => 'integer',
         'hash'         => 'string',
+        'sizes'        => 'string',
         'cover_dir'    => 'string',
         'cover_name'   => 'string',
         'cover_ext'    => 'string',

@@ -155,6 +155,8 @@ class PhotoModel extends Model
             return Photo::ERROR_FAIL_MOVE;
         }
 
+        $modelPhoto = null;
+
         while (true) {
 
             try {
@@ -208,6 +210,81 @@ class PhotoModel extends Model
         return [
             'host'    => $config['scheme'] . '://' . $modelPhoto->host,
             'file_id' => $modelPhoto->file_id
+        ];
+    }
+
+    /**
+     * Upload file cover by temp path
+     * @param string|null $file_temp_path
+     * @param string|null $media_type
+     * @param string|null $type
+     * @return mixed
+     */
+    public function uploadCoverByTempPath(string $file_temp_path = null, string $media_type = null, string $type = null)
+    {
+        global $config;
+
+        if (empty($file_temp_path)) {
+            return Photo::ERROR_FAIL_UPLOAD;
+        }
+
+        // Check type
+        if (!isset($config[$media_type]) || !isset($config[$media_type]['type']) || !isset($config[$media_type]['type'][$type])) {
+            return Photo::ERROR_TYPE;
+        }
+
+        $typeInfo = $config[$media_type]['type'][$type];
+
+        // Get file info
+        $getID3 = new getID3();
+        $imageInfo = $getID3->analyze($file_temp_path);
+
+        if (!isset($imageInfo['filesize']) || !isset($imageInfo['fileformat'])) {
+            return Photo::ERROR_FAIL_UPLOAD;
+        }
+        
+        $size   = $imageInfo['filesize'];
+        $ext    = $imageInfo['fileformat'];
+
+        $hash = hash_file($this->algo, $file_temp_path);
+
+        $result = $this->fileMove($config[$media_type]['dir_cover'], $file_temp_path, $hash);
+
+        if (!isset($result['status']) || $result['status'] != true) {
+            return Photo::ERROR_FAIL_MOVE;
+        }
+
+        $modelPhoto = null;
+
+        while (true) {
+
+            try {
+                $modelPhoto = new Photo();
+                $modelPhoto->file_id    = $this->uniqid();
+                $modelPhoto->type       = $type; // todo ????
+                $modelPhoto->host       = $config['domain'];
+                $modelPhoto->dir        = $result['dir'];
+                $modelPhoto->name       = $result['name'];
+                $modelPhoto->ext        = $ext;
+                $modelPhoto->fields     = null;
+                $modelPhoto->size       = $size;
+                $modelPhoto->hash       = $hash;
+                $modelPhoto->sizes      = json_encode([]);
+                $modelPhoto->time       = time();
+                $modelPhoto->is_use     = 1;
+                $modelPhoto->hide       = 0;
+                
+                if ($modelPhoto->save()) {
+                    break;
+                }
+
+            } catch (\Exception $exception) {
+                continue;
+            }
+        }
+
+        return [
+            'w' => 'dff'
         ];
     }
 

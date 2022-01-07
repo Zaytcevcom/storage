@@ -14,7 +14,7 @@ use api\classes\Entity;
  * @property string $dir
  * @property string $name
  * @property string $ext
- * @property string $fields
+ * @property string|null $fields
  * @property double $size
  * @property string $hash
  * @property string $sizes
