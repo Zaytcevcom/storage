@@ -137,8 +137,11 @@ class VideoModel extends Model
         $size   = $videoInfo['filesize'];
         $ext    = pathinfo($file_temp_path, PATHINFO_EXTENSION); //$videoInfo['fileformat'];
 
-        return pathinfo($file_temp_path);
-        
+        return [
+            '1' => pathinfo($file_temp_path),
+            '2' => $videoInfo['fileformat']
+        ];
+
         // Check min file size
         if ($size < $config['video']['minSize']) {
             return Video::ERROR_MIN_SIZE;
