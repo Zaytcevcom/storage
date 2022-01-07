@@ -163,9 +163,7 @@ class VideoModel extends Model
         $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $ext;
         
         // Get video cover info
-        $coverInfo = $this->createVideoCover($path);
-
-        return $coverInfo;
+        $coverInfo = $this->createCover($path, $type);
         
         $modelVideo = null;
 
@@ -180,7 +178,7 @@ class VideoModel extends Model
                 $modelVideo->name           = $result['name'];
                 $modelVideo->ext            = $ext;
                 $modelVideo->fields         = json_encode($fields);
-                $modelVideo->size           = $size;
+                $modelVideo->size           = (int)$size;
                 $modelVideo->duration       = (int)$videoInfo['playtime_seconds'];
                 $modelVideo->hash           = $hash;
                 $modelVideo->sizes          = null;
@@ -209,11 +207,12 @@ class VideoModel extends Model
     }
 
     /**
-     * Create video cover info
-     * @param string $path
+     * Create cover
+     * @param string|null $path
+     * @param string|null $type
      * @return array
      */
-    private function createVideoCover($path)
+    private function createCover($path = null, $type = null)
     {
         global $config;
 
@@ -245,9 +244,7 @@ class VideoModel extends Model
         
         // Upload video cover
         $PhotoModel = new PhotoModel();
-        $response = $PhotoModel->uploadCoverByTempPath($temp_path_name, 'video', '1');
-
-        return $response;
+        $response = $PhotoModel->uploadCoverByTempPath($temp_path_name, 'video', $type);
 
         if (isset($response['file_id'])) {
             $result = [

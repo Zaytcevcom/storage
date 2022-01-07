@@ -269,7 +269,7 @@ class PhotoModel extends Model
                 $modelPhoto->fields     = null;
                 $modelPhoto->size       = $size;
                 $modelPhoto->hash       = $hash;
-                $modelPhoto->sizes      = json_encode([]);
+                $modelPhoto->sizes      = null;
                 $modelPhoto->time       = time();
                 $modelPhoto->is_use     = 1;
                 $modelPhoto->hide       = 0;
@@ -284,7 +284,12 @@ class PhotoModel extends Model
         }
 
         return [
-            'w' => 'dff'
+            'file_id'   => $modelPhoto->file_id,
+            'dir'       => $modelPhoto->dir,
+            'name'      => $modelPhoto->name,
+            'ext'       => $modelPhoto->ext,
+            'size'      => (int)$modelPhoto->size,
+            'sizes'     => !(empty($modelPhoto->sizes)) ? json_decode($modelPhoto->sizes, true) : null,
         ];
     }
 

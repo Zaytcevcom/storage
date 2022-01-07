@@ -149,6 +149,11 @@ class AudioModel extends Model
             return Audio::ERROR_FAIL_MOVE;
         }
 
+        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $ext;
+
+        // Get audio cover info
+        $coverInfo = $this->createCover($path, $type);
+
         $modelAudio = null;
 
         while (true) {
@@ -162,14 +167,15 @@ class AudioModel extends Model
                 $modelAudio->name           = $result['name'];
                 $modelAudio->ext            = $ext;
                 $modelAudio->fields         = json_encode($fields);
-                $modelAudio->size           = $size;
+                $modelAudio->size           = (int)$size;
                 $modelAudio->duration       = (int)$audioInfo['playtime_seconds'];
                 $modelAudio->hash           = $hash;
-                $modelAudio->cover_dir      = null;
-                $modelAudio->cover_name     = null;
-                $modelAudio->cover_ext      = null;
-                $modelAudio->cover_size     = null;
-                $modelAudio->cover_sizes    = null;
+                $modelAudio->sizes          = null;
+                $modelAudio->cover_dir      = $coverInfo['dir'];
+                $modelAudio->cover_name     = $coverInfo['name'];
+                $modelAudio->cover_ext      = $coverInfo['ext'];
+                $modelAudio->cover_size     = $coverInfo['size'];
+                $modelAudio->cover_sizes    = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
                 $modelAudio->time           = time();
                 $modelAudio->is_use         = 0;
                 $modelAudio->hide           = 0;
@@ -187,6 +193,31 @@ class AudioModel extends Model
             'host'    => $config['scheme'] . '://' . $modelAudio->host,
             'file_id' => $modelAudio->file_id
         ];
+    }
+
+    /**
+     * Create cover
+     * @param string|null $path
+     * @param string|null $type
+     * @return array
+     */
+    private function createCover($path = null, $type = null)
+    {
+        global $config;
+
+        $result = [
+            'dir'   => null,
+            'name'  => null,
+            'ext'   => null,
+            'size'  => null,
+            'sizes' => null
+        ];
+
+        $ext            = 'jpg';
+        $temp_path_dir  = ROOT_DIR . $config['temp']['dir'];
+        $temp_path_name = $temp_path_dir . '/' . pathinfo($path, PATHINFO_FILENAME) . '.' . $ext;
+
+        return $result;
     }
 
     /**
