@@ -224,6 +224,18 @@ class VideoModel extends Model
             'sizes' => null
         ];
 
+        if (!isset($config['video']) || !isset($config['video']['type']) || !isset($config['video']['type'][$type])) {
+            return $result;
+        }
+
+        $typeInfo = $config['video']['type'][$type];
+
+        // No need create cover
+        if (!isset($typeInfo['cover']) || !isset($typeInfo['cover']['is_need']) || !$typeInfo['cover']['is_need']) {
+            return $result;
+        }
+
+
         $ext            = 'jpg';
         $temp_path_dir  = ROOT_DIR . $config['temp']['dir'];
         $temp_path_name = $temp_path_dir . '/' . pathinfo($path, PATHINFO_FILENAME) . '.' . $ext;

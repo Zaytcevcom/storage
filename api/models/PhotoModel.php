@@ -254,27 +254,26 @@ class PhotoModel extends Model
             return Photo::ERROR_FAIL_MOVE;
         }
 
-        $modelPhoto = null;
+        $modelCover = null;
 
         while (true) {
 
             try {
-                $modelPhoto = new Photo();
-                $modelPhoto->file_id    = $this->uniqid();
-                $modelPhoto->type       = $type; // todo ????
-                $modelPhoto->host       = $config['domain'];
-                $modelPhoto->dir        = $result['dir'];
-                $modelPhoto->name       = $result['name'];
-                $modelPhoto->ext        = $ext;
-                $modelPhoto->fields     = null;
-                $modelPhoto->size       = $size;
-                $modelPhoto->hash       = $hash;
-                $modelPhoto->sizes      = null;
-                $modelPhoto->time       = time();
-                $modelPhoto->is_use     = 1;
-                $modelPhoto->hide       = 0;
+                $modelCover = new Photo();
+                $modelCover->file_id    = $this->uniqid();
+                $modelCover->media_type = $media_type;
+                $modelCover->type       = $type;
+                $modelCover->host       = $config['domain'];
+                $modelCover->dir        = $result['dir'];
+                $modelCover->name       = $result['name'];
+                $modelCover->ext        = $ext;
+                $modelCover->size       = $size;
+                $modelCover->hash       = $hash;
+                $modelCover->sizes      = null;
+                $modelCover->time       = time();
+                $modelCover->hide       = 0;
                 
-                if ($modelPhoto->save()) {
+                if ($modelCover->save()) {
                     break;
                 }
 
@@ -284,12 +283,12 @@ class PhotoModel extends Model
         }
 
         return [
-            'file_id'   => $modelPhoto->file_id,
-            'dir'       => $modelPhoto->dir,
-            'name'      => $modelPhoto->name,
-            'ext'       => $modelPhoto->ext,
-            'size'      => (int)$modelPhoto->size,
-            'sizes'     => !(empty($modelPhoto->sizes)) ? json_decode($modelPhoto->sizes, true) : null,
+            'file_id'   => $modelCover->file_id,
+            'dir'       => $modelCover->dir,
+            'name'      => $modelCover->name,
+            'ext'       => $modelCover->ext,
+            'size'      => (int)$modelCover->size,
+            'sizes'     => !(empty($modelCover->sizes)) ? json_decode($modelCover->sizes, true) : null,
         ];
     }
 
