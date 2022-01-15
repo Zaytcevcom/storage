@@ -161,6 +161,47 @@ class VideoModel extends VideoProtectedModel
         return $model->save() ? 1 : 0;
     }
 
+    /**
+     * Processing cover file by default settings
+     * @param string|null $file_id
+     * @param string|null $secret_key
+     * @return mixed
+     */
+    public function coverProcessing(string $file_id = null, string $secret_key = null)
+    {
+        global $config;
+
+        if ($config['video']['secret_key'] != $secret_key) {
+            return Video::ERROR_SECRET_KEY;
+        }
+
+        $model = Video::getByFileId($file_id);
+
+        if (empty($model)) {
+            return Video::ERROR_NOT_FOUND;
+        }
+
+        // Check type
+        if (
+            !isset($config['photo']) ||
+            !isset($config['photo']['type']) ||
+            !isset($config['photo']['type'][$model->type])
+        ) {
+            return Video::ERROR_TYPE;
+        }
+
+        // Crop and resize by settings
+        $processing = $this->processingModelByDefaultSettings($model, $config['photo']['type'][$model->type]);
+
+        // Save info
+        $model->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
+        $model->crop_square = (isset($processing['crop_square']) && $processing['crop_square']) ? json_encode($processing['crop_square']) : null;
+        $model->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
+        $model->save();
+
+        return Video::getInfo([$model])[0];
+    }
+
 
     // MARK: - CRON
 

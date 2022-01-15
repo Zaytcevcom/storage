@@ -18,8 +18,6 @@ class PhotoProtectedModel extends Model
     private $algo       = 'sha1';
     private $mode       = 0755; // mkdir mode
     private $quality    = 90;
-
-    private $pref_square = 'square';
     
     /**
      * Upload file by temp path
@@ -144,10 +142,13 @@ class PhotoProtectedModel extends Model
             }
         }
 
-        $sizes = $this->processing($path, $typeInfo['cover'], [], $rotate, $params);
+        // Crop and resize by settings
+        $processing = $this->processingModelByDefaultSettings($modelPhoto, $typeInfo, $params);
 
-        $modelPhoto->size = filesize($path);
-        $modelPhoto->sizes = json_encode($sizes);
+        // Save info
+        $modelPhoto->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
+        $modelPhoto->crop_square = (isset($processing['crop_square']) && $processing['crop_square']) ? json_encode($processing['crop_square']) : null;
+        $modelPhoto->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
         $modelPhoto->save();
 
         return [
@@ -172,11 +173,16 @@ class PhotoProtectedModel extends Model
         }
 
         // Check type
-        if (!isset($config[$media_type]) || !isset($config[$media_type]['type']) || !isset($config[$media_type]['type'][$type])) {
+        if (
+            !isset($config[$media_type]) ||
+            !isset($config[$media_type]['type']) ||
+            !isset($config[$media_type]['type'][$type]) ||
+            !isset($config[$media_type]['type'][$type]['cover']) ||
+            !isset($config[$media_type]['type'][$type]['cover']['is_need']) ||
+            $config[$media_type]['type'][$type]['cover']['is_need'] != 1
+        ) {
             return Photo::ERROR_TYPE;
         }
-
-        $typeInfo = $config[$media_type]['type'][$type];
 
         // Get file info
         $getID3 = new getID3();
@@ -238,6 +244,15 @@ class PhotoProtectedModel extends Model
                 continue;
             }
         }
+
+        // Crop and resize by settings
+        $processing = $this->processingModelByDefaultSettings($modelCover, $config[$media_type]['type'][$type]['cover']);
+
+        // Save info
+        $modelCover->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
+        $modelCover->crop_square = (isset($processing['crop_square']) && $processing['crop_square']) ? json_encode($processing['crop_square']) : null;
+        $modelCover->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
+        $modelCover->save();
 
         return Cover::getInfoProtected([$modelCover])[0];
     }
@@ -424,11 +439,12 @@ class PhotoProtectedModel extends Model
 
     /**
      * Processing file by settings
-     * @param Photo|null $model
+     * @param object|null $model
      * @param array|null $settings
+     * @param array|null $params
      * @return mixed
      */
-    protected function processingModelByDefaultSettings(Photo $model, array $settings = null)
+    protected function processingModelByDefaultSettings(object $model, array $settings = null, array $params = null)
     {
         // Path to original file
         $path = ROOT_DIR . $model->dir . $model->name . '.' . $model->ext;
@@ -445,14 +461,14 @@ class PhotoProtectedModel extends Model
         $old_files_square = (!empty($model->crop_square)) ? json_decode($model->crop_square, true) : null;
 
         // [Crop square] Crop and resize
-        $cropSquareResult = $this->fileCropBySettings($settings, 0, $path, null, $this->quality, $old_files_square);
+        $cropSquareResult = $this->fileCropBySettings($settings, 0, $path, $params, $this->quality, $old_files_square);
 
 
         // [Crop custom] Get old crop custom files
         $old_files_custom = (!empty($model->crop_custom)) ? json_decode($model->crop_custom, true) : null;
 
         // [Crop custom] Crop and resize
-        $cropCustomResult = $this->fileCropBySettings($settings, 1, $path, null, $this->quality, $old_files_custom);
+        $cropCustomResult = $this->fileCropBySettings($settings, 1, $path, $params, $this->quality, $old_files_custom);
 
         return [
             'sizes'         => $sizesResult,
@@ -556,6 +572,33 @@ class PhotoProtectedModel extends Model
      */
     protected function fileResizeBySettings(array $settings = null, string $path = null, int $quality = null, array $files = null)
     {
-        // todo: ДОДЕЛАТЬ!!
+        if (empty($path)) {
+            return false;
+        }
+
+        if (
+            empty($settings) ||
+            !isset($settings['sizes']) ||
+            !isset($settings['sizes']['is_need']) ||
+            $settings['sizes']['is_need'] != 1
+        ) {
+            // Delete old files
+            $this->fileDeleteOld($files);
+
+            return false;
+        }
+
+        $result = [];
+
+        // Resize
+        if (!isset($settings['sizes'])) {
+            foreach ($settings['sizes']['resize'] as $width) {
+                $result[$width] = $this->fileResize($path, $width, $quality);
+            }
+        }
+        
+        ksort($result);
+
+        return $result;
     }
 }
