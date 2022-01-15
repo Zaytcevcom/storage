@@ -47,6 +47,10 @@ if ($data === Audio::ERROR_OPTIMIZE) {
     return $controller->error(8, 'Error optimize file!');
 }
 
+if ($data === Audio::ERROR_SAVE) {
+    return $controller->error(9, 'Error save file!');
+}
+
 return $controller->success($data);
 
 /**
@@ -62,7 +66,8 @@ return $controller->success($data);
  *  5 - Error min file size!
  *  6 - Error max file size!
  *  7 - Error allow types!
- *  8 - Error optimize file!",
+ *  8 - Error optimize file!
+ *  9 - Error save file!",
  *  tags={"Audio"},
  *  @OA\Response(response=200, description="Successful operation"),
  *  @OA\Response(response=405, description="Invalid input")

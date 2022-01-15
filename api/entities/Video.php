@@ -24,6 +24,8 @@ use api\classes\Entity;
  * @property string|null $cover_ext
  * @property double|null $cover_size
  * @property string|null $cover_sizes
+ * @property string|null $cover_crop_square
+ * @property string|null $cover_crop_custom
  * @property int $time
  * @property int $is_use
  * @property int $hide
@@ -49,32 +51,36 @@ class Video extends Entity
         'cover_ext',
         'cover_size',
         'cover_sizes',
+        'cover_crop_square',
+        'cover_crop_custom',
         'time',
         'is_use',
         'hide',
     ];
 
     protected $casts = [
-        'id'           => 'integer',
-        'file_id'      => 'string',
-        'type'         => 'integer',
-        'host'         => 'string',
-        'dir'          => 'string',
-        'name'         => 'string',
-        'ext'          => 'string',
-        'fields'       => 'string',
-        'size'         => 'double',
-        'duration'     => 'integer',
-        'hash'         => 'string',
-        'sizes'        => 'string',
-        'cover_dir'    => 'string',
-        'cover_name'   => 'string',
-        'cover_ext'    => 'string',
-        'cover_size'   => 'double',
-        'cover_sizes'  => 'string',
-        'time'         => 'integer',
-        'is_use'       => 'integer',
-        'hide'         => 'integer',
+        'id'                    => 'integer',
+        'file_id'               => 'string',
+        'type'                  => 'integer',
+        'host'                  => 'string',
+        'dir'                   => 'string',
+        'name'                  => 'string',
+        'ext'                   => 'string',
+        'fields'                => 'string',
+        'size'                  => 'double',
+        'duration'              => 'integer',
+        'hash'                  => 'string',
+        'sizes'                 => 'string',
+        'cover_dir'             => 'string',
+        'cover_name'            => 'string',
+        'cover_ext'             => 'string',
+        'cover_size'            => 'double',
+        'cover_sizes'           => 'string',
+        'cover_crop_square'     => 'string',
+        'cover_crop_custom'     => 'string',
+        'time'                  => 'integer',
+        'is_use'                => 'integer',
+        'hide'                  => 'integer',
     ];
 
     const ERROR_REQUIRED_FIELDS = self::class . 1;
@@ -87,6 +93,7 @@ class Video extends Entity
     const ERROR_MAX_SIZE        = self::class . 8;
     const ERROR_ALLOW_TYPES     = self::class . 9;
     const ERROR_OPTIMIZE        = self::class . 10;
+    const ERROR_SAVE            = self::class . 11;
 
     const SALT = 'video';
 }

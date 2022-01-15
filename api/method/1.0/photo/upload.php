@@ -11,6 +11,7 @@ $type   = $controller->getToStringOrNull('type');
 $rotate = $controller->getToInt('rotate');
 
 // Crop params
+$params           = [];
 $params['left']   = $controller->getToIntOrNull('left');
 $params['top']    = $controller->getToIntOrNull('top');
 $params['width']  = $controller->getToIntOrNull('width');
@@ -58,6 +59,10 @@ if ($data === Photo::ERROR_CROP) {
     return $controller->error(9, 'Error crop file!');
 }
 
+if ($data === Photo::ERROR_SAVE) {
+    return $controller->error(10, 'Error save file!');
+}
+
 return $controller->success($data);
 
 /**
@@ -74,13 +79,14 @@ return $controller->success($data);
  *  6 - Error max file size!
  *  7 - Error allow types!
  *  8 - Error optimize file!
- *  9 - Error crop file!",
+ *  9 - Error crop file!
+ *  10 - Error save file!",
  *  tags={"Photo"},
  *  @OA\Parameter(
  *    name="rotate",
  *    description="Угол поворота в градусах",
  *    in="query",
- *    required=true,
+ *    required=false,
  *    @OA\Schema(
  *      type="integer",
  *      format="int64",
@@ -90,7 +96,7 @@ return $controller->success($data);
  *    name="left",
  *    description="Отступ слева",
  *    in="query",
- *    required=true,
+ *    required=false,
  *    @OA\Schema(
  *      type="integer",
  *      format="int64",
@@ -100,7 +106,7 @@ return $controller->success($data);
  *    name="top",
  *    description="Отступ сверху",
  *    in="query",
- *    required=true,
+ *    required=false,
  *    @OA\Schema(
  *      type="integer",
  *      format="int64",
@@ -110,7 +116,7 @@ return $controller->success($data);
  *    name="width",
  *    description="Ширина",
  *    in="query",
- *    required=true,
+ *    required=false,
  *    @OA\Schema(
  *      type="integer",
  *      format="int64",
@@ -120,7 +126,7 @@ return $controller->success($data);
  *    name="height",
  *    description="Высота",
  *    in="query",
- *    required=true,
+ *    required=false,
  *    @OA\Schema(
  *      type="integer",
  *      format="int64",

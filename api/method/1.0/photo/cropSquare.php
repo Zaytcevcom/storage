@@ -3,7 +3,7 @@
 use api\entities\Photo;
 
 // Check require params
-$needFields = $controller->checkRequireFields(['file_id', 'secret_key', 'left', 'top', 'width', 'height']);
+$needFields = $controller->checkRequireFields(['file_id', 'secret_key', 'left', 'top', 'width']);
 
 if ($needFields) {
     return $controller->needFields($needFields);
@@ -18,10 +18,9 @@ $params           = [];
 $params['left']   = $controller->getToIntOrNull('left');
 $params['top']    = $controller->getToIntOrNull('top');
 $params['width']  = $controller->getToIntOrNull('width');
-$params['height'] = $controller->getToIntOrNull('height');
 
-// Crop
-$data = $model->crop($file_id, $secret_key, $params);
+// Crop square
+$data = $model->cropSquare($file_id, $secret_key, $params);
 
 if ($data === Photo::ERROR_SECRET_KEY) {
     return $controller->error(2, 'Invalid secret key!');
@@ -43,9 +42,9 @@ return $controller->success($data);
 
 /**
  * @OA\Post(
- *  path="/photo.crop",
- *  summary="Создает миниатюру изображения с заданной шириной и высотой",
- *  description="Создает миниатюру изображения с заданной шириной и высотой
+ *  path="/photo.cropSquare",
+ *  summary="Создает квадратную миниатюру изображения",
+ *  description="Создает квадратную миниатюру изображения
  *  **Коды ошибок:**
  *  1 - Missing a required field
  *  2 - Invalid secret key
@@ -94,16 +93,6 @@ return $controller->success($data);
  *  @OA\Parameter(
  *    name="width",
  *    description="Ширина",
- *    in="query",
- *    required=false,
- *    @OA\Schema(
- *      type="integer",
- *      format="int64",
- *    )
- *  ),
- *  @OA\Parameter(
- *    name="height",
- *    description="Высота",
  *    in="query",
  *    required=false,
  *    @OA\Schema(

@@ -15,9 +15,9 @@ use getID3;
  */
 class PhotoModel extends Model
 {
-    private $algo = 'sha1';
-    private $mode = 0755; // mkdir mode
-    private $quality = 90;
+    private $algo       = 'sha1';
+    private $mode       = 0755; // mkdir mode
+    private $quality    = 90;
 
     /**
      * Get file info
@@ -39,22 +39,39 @@ class PhotoModel extends Model
             return Photo::ERROR_NOT_FOUND;
         }
 
+        // File sizes
         $sizes = (!empty($model->sizes)) ? json_decode($model->sizes, true) : [];
 
         foreach ($sizes as $key => $value) {
             $sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
         }
 
+        // File crop square
+        $crop_square = (!empty($model->crop_square)) ? json_decode($model->crop_square, true) : [];
+
+        foreach ($crop_square as $key => $value) {
+            $crop_square[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
+        // File crop custom
+        $crop_custom = (!empty($model->crop_custom)) ? json_decode($model->crop_custom, true) : [];
+
+        foreach ($crop_custom as $key => $value) {
+            $crop_custom[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
         $data = [
-            'file_id'   => $model->file_id,
-            'fields'    => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
-            'original'  => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
-            'sizes'     => $sizes,
-            'type'      => $model->type,
-            'hash'      => $model->hash,
-            'size'      => $model->size,
-            'time'      => $model->time,
-            'is_use'    => $model->is_use
+            'file_id'       => $model->file_id,
+            'fields'        => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
+            'original'      => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
+            'sizes'         => (!empty($sizes)) ? $sizes : null,
+            'crop_square'   => (!empty($crop_square)) ? $crop_square : null,
+            'crop_custom'   => (!empty($crop_custom)) ? $crop_custom : null,
+            'type'          => $model->type,
+            'hash'          => $model->hash,
+            'size'          => $model->size,
+            'time'          => $model->time,
+            'is_use'        => $model->is_use
         ];
 
         return $data;
@@ -158,10 +175,12 @@ class PhotoModel extends Model
 
         $modelPhoto = null;
 
-        while (true) {
+        $countAttempt = 50;
+
+        while ($countAttempt > 0) {
 
             try {
-                $modelPhoto = new Photo();
+                $modelPhoto             = new Photo();
                 $modelPhoto->file_id    = $this->uniqid();
                 $modelPhoto->type       = $type;
                 $modelPhoto->host       = $config['domain'];
@@ -181,6 +200,16 @@ class PhotoModel extends Model
                 }
 
             } catch (\Exception $exception) {
+
+                $countAttempt--;
+
+                if ($countAttempt <= 0) {
+                    
+                    // todo: delete files
+
+                    return Photo::ERROR_SAVE;
+                }
+
                 continue;
             }
         }
@@ -194,19 +223,11 @@ class PhotoModel extends Model
             }
         }
 
-        $sizes = $this->processing($typeInfo, $path, $crop);
-
-        if (!is_array($sizes)) {
-            return $sizes;
-        }
+        $sizes = $this->processing($path, $typeInfo['cover'], [], $rotate, $crop);
 
         $modelPhoto->size = filesize($path);
         $modelPhoto->sizes = json_encode($sizes);
         $modelPhoto->save();
-
-        foreach ($sizes as $key => $value) {
-            $sizes[$key] = $config['scheme'] . '://' . $modelPhoto->host . $value;
-        }
 
         return [
             'host'    => $config['scheme'] . '://' . $modelPhoto->host,
@@ -257,39 +278,55 @@ class PhotoModel extends Model
 
         $modelCover = null;
 
-        while (true) {
+        $countAttempt = 50;
+
+        while ($countAttempt > 0) {
 
             try {
-                $modelCover = new Cover();
-                $modelCover->file_id    = $this->uniqid();
-                $modelCover->media_type = $media_type;
-                $modelCover->type       = $type;
-                $modelCover->host       = $config['domain'];
-                $modelCover->dir        = $result['dir'];
-                $modelCover->name       = $result['name'];
-                $modelCover->ext        = $ext;
-                $modelCover->size       = $size;
-                $modelCover->hash       = $hash;
-                $modelCover->sizes      = null;
-                $modelCover->time       = time();
-                $modelCover->hide       = 0;
+                $modelCover                 = new Cover();
+                $modelCover->file_id        = $this->uniqid();
+                $modelCover->media_type     = $media_type;
+                $modelCover->type           = $type;
+                $modelCover->host           = $config['domain'];
+                $modelCover->dir            = $result['dir'];
+                $modelCover->name           = $result['name'];
+                $modelCover->ext            = $ext;
+                $modelCover->size           = $size;
+                $modelCover->hash           = $hash;
+                $modelCover->sizes          = null;
+                $modelCover->crop_square    = null;
+                $modelCover->crop_custom    = null;
+                $modelCover->time           = time();
+                $modelCover->hide           = 0;
                 
                 if ($modelCover->save()) {
                     break;
                 }
 
             } catch (\Exception $exception) {
+
+                $countAttempt--;
+
+                if ($countAttempt <= 0) {
+                    
+                    // todo: delete files
+
+                    return Photo::ERROR_SAVE;
+                }
+
                 continue;
             }
         }
 
         return [
-            'file_id'   => $modelCover->file_id,
-            'dir'       => $modelCover->dir,
-            'name'      => $modelCover->name,
-            'ext'       => $modelCover->ext,
-            'size'      => (int)$modelCover->size,
-            'sizes'     => !(empty($modelCover->sizes)) ? json_decode($modelCover->sizes, true) : null,
+            'file_id'       => $modelCover->file_id,
+            'dir'           => $modelCover->dir,
+            'name'          => $modelCover->name,
+            'ext'           => $modelCover->ext,
+            'size'          => (int)$modelCover->size,
+            'sizes'         => !(empty($modelCover->sizes)) ? json_decode($modelCover->sizes, true) : null,
+            'crop_square'   => !(empty($modelCover->crop_square)) ? json_decode($modelCover->crop_square, true) : null,
+            'crop_custom'   => !(empty($modelCover->crop_custom)) ? json_decode($modelCover->crop_custom, true) : null,
         ];
     }
 
@@ -302,6 +339,9 @@ class PhotoModel extends Model
      */
     public function processing($typeInfo, $path, $crop = null)
     {
+        // todo
+        return [];
+        /*
         // Сrop image
         if ($typeInfo['cropped']) {
 
@@ -345,6 +385,7 @@ class PhotoModel extends Model
         }
 
         return $sizes;
+        */
     }
 
     /**
@@ -423,13 +464,52 @@ class PhotoModel extends Model
     }
 
     /**
+     * Resize
+     * @param string|null $file_id
+     * @param string|null $secret_key
+     * @return mixed
+     */
+    public function resize(string $file_id = null, string $secret_key = null)
+    {
+        global $config;
+
+        if ($config['photo']['secret_key'] != $secret_key) {
+            return Photo::ERROR_SECRET_KEY;
+        }
+
+        $model = Photo::getByFileId($file_id);
+
+        if (empty($model)) {
+            return Photo::ERROR_NOT_FOUND;
+        }
+
+        // todo: 
+
+        return $model->save() ? 1 : 0;
+    }
+
+    /**
+     * Crop square image
+     * @param string|null $file_id
+     * @param string|null $secret_key
+     * @param array|null $params
+     * @return int
+     */
+    public function cropSquare(string $file_id = null, string $secret_key = null, array $params = null)
+    {
+        // todo: 
+
+        return null;
+    }
+
+    /**
      * Crop image
      * @param string|null $file_id
      * @param string|null $secret_key
-     * @param array $params
+     * @param array|null $params
      * @return int
      */
-    public function crop(string $file_id = null, string $secret_key = null, array $params = [])
+    public function crop(string $file_id = null, string $secret_key = null, array $params = null)
     {
         global $config;
 
@@ -478,7 +558,8 @@ class PhotoModel extends Model
         }
 
         // Сrop image
-        $cropImage = $this->fileCrop($path, $this->quality, $is_auto ? $crop_auto : $params, $is_auto);
+        //$cropImage = $this->fileCrop($path, $this->quality, $is_auto ? $crop_auto : $params, $is_auto);
+        $cropImage = $this->fileCrop($path, $params, $this->quality);
 
         if (!$cropImage) {
             return Photo::ERROR_CROP;
@@ -663,19 +744,33 @@ class PhotoModel extends Model
     /**
      * Crop image
      * @param string $path
-     * @param int $quality
-     * @param array $params
-     * @param int $is_auto
+     * @param array|null $params
+     * @param int|null $quality
      * @return mixed
      */
-    private function fileCrop(string $path, int $quality, array $params = null, int $is_auto = 1)
+    private function fileCrop(string $path, array $params = null, int $quality = null)
     {
-        if (empty($params)) {
-            return false;
+        $image  = new Image($path);
+        $path   = $image->crop($params, $quality);
+
+        if ($path) {
+            return Image::withoutRootDir(ROOT_DIR, $path);
         }
 
-        $image = new Image($path);
-        $path = $image->crop($params, $quality, null, $is_auto);
+        return false;
+    }
+
+    /**
+     * Crop square image
+     * @param string $path
+     * @param array|null $params
+     * @param int|null $quality
+     * @return mixed
+     */
+    private function fileCropSquare(string $path, array $params = null, int $quality = null)
+    {
+        $image  = new Image($path);
+        $path   = $image->cropSquare($params, $quality);
 
         if ($path) {
             return Image::withoutRootDir(ROOT_DIR, $path);
@@ -688,16 +783,14 @@ class PhotoModel extends Model
      * Resize image
      * @param string $path
      * @param int $width
-     * @param int $height
-     * @param int $quality
+     * @param int|null $quality
      * @return mixed
      */
-    private function fileResize(string $path, int $width, int $height, int $quality)
+    private function fileResize(string $path, int $width, int $quality = null)
     {
         $image = new Image($path);
-
-        $resize_path = $image->resize($path, $width, $height, $quality);
+        $resize_path = $image->resize($width, $quality);
         
-        return ($resize_path) ? Image::withoutRootDir(ROOT_DIR, $resize_path) : Image::withoutRootDir(ROOT_DIR, $path);
+        return Image::withoutRootDir(ROOT_DIR, ($resize_path) ? $resize_path : $path);
     }
 }

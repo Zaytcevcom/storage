@@ -52,19 +52,35 @@ class VideoModel extends Model
             $cover_sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
         }
 
+        // File cover crop square
+        $cover_crop_square = (!empty($model->cover_crop_square)) ? json_decode($model->cover_crop_square, true) : [];
+
+        foreach ($cover_crop_square as $key => $value) {
+            $cover_crop_square[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
+        // File cover crop custom
+        $cover_crop_custom = (!empty($model->cover_crop_custom)) ? json_decode($model->cover_crop_custom, true) : [];
+
+        foreach ($cover_crop_custom as $key => $value) {
+            $cover_crop_custom[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
         $data = [
-            'file_id'       => $model->file_id,
-            'fields'        => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
-            'src'           => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
-            'src_sizes'     => $src_sizes,
-            'cover'         => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
-            'cover_sizes'   => $cover_sizes,
-            'duration'      => $model->duration,
-            'type'          => $model->type,
-            'hash'          => $model->hash,
-            'size'          => $model->size,
-            'time'          => $model->time,
-            'is_use'        => $model->is_use
+            'file_id'           => $model->file_id,
+            'fields'            => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
+            'src'               => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
+            'src_sizes'         => $src_sizes,
+            'cover'             => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
+            'cover_sizes'       => (!empty($cover_sizes)) ? $cover_sizes : null,
+            'cover_crop_square' => (!empty($cover_crop_square)) ? $cover_crop_square : null,
+            'cover_crop_custom' => (!empty($cover_crop_custom)) ? $cover_crop_custom : null,
+            'duration'          => $model->duration,
+            'type'              => $model->type,
+            'hash'              => $model->hash,
+            'size'              => $model->size,
+            'time'              => $model->time,
+            'is_use'            => $model->is_use
         ];
 
         return $data;
@@ -167,35 +183,49 @@ class VideoModel extends Model
         
         $modelVideo = null;
 
-        while (true) {
+        $countAttempt = 50;
+
+        while ($countAttempt > 0) {
 
             try {
-                $modelVideo = new Video();
-                $modelVideo->file_id        = $this->uniqid();
-                $modelVideo->type           = $type;
-                $modelVideo->host           = $config['domain'];
-                $modelVideo->dir            = $result['dir'];
-                $modelVideo->name           = $result['name'];
-                $modelVideo->ext            = $ext;
-                $modelVideo->fields         = json_encode($fields);
-                $modelVideo->size           = (int)$size;
-                $modelVideo->duration       = (int)$videoInfo['playtime_seconds'];
-                $modelVideo->hash           = $hash;
-                $modelVideo->sizes          = null;
-                $modelVideo->cover_dir      = $coverInfo['dir'];
-                $modelVideo->cover_name     = $coverInfo['name'];
-                $modelVideo->cover_ext      = $coverInfo['ext'];
-                $modelVideo->cover_size     = $coverInfo['size'];
-                $modelVideo->cover_sizes    = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
-                $modelVideo->time           = time();
-                $modelVideo->is_use         = 0;
-                $modelVideo->hide           = 0;
+                $modelVideo                     = new Video();
+                $modelVideo->file_id            = $this->uniqid();
+                $modelVideo->type               = $type;
+                $modelVideo->host               = $config['domain'];
+                $modelVideo->dir                = $result['dir'];
+                $modelVideo->name               = $result['name'];
+                $modelVideo->ext                = $ext;
+                $modelVideo->fields             = json_encode($fields);
+                $modelVideo->size               = (int)$size;
+                $modelVideo->duration           = (int)$videoInfo['playtime_seconds'];
+                $modelVideo->hash               = $hash;
+                $modelVideo->sizes              = null;
+                $modelVideo->cover_dir          = $coverInfo['dir'];
+                $modelVideo->cover_name         = $coverInfo['name'];
+                $modelVideo->cover_ext          = $coverInfo['ext'];
+                $modelVideo->cover_size         = $coverInfo['size'];
+                $modelVideo->cover_sizes        = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
+                $modelVideo->cover_crop_square  = (!empty($coverInfo['crop_square'])) ? json_encode($coverInfo['crop_square']) : null;
+                $modelVideo->cover_crop_custom  = (!empty($coverInfo['crop_custom'])) ? json_encode($coverInfo['crop_custom']) : null;
+                $modelVideo->time               = time();
+                $modelVideo->is_use             = 0;
+                $modelVideo->hide               = 0;
                 
                 if ($modelVideo->save()) {
                     break;
                 }
 
             } catch (\Exception $exception) {
+
+                $countAttempt--;
+
+                if ($countAttempt <= 0) {
+                    
+                    // todo: delete files
+
+                    return Video::ERROR_SAVE;
+                }
+
                 continue;
             }
         }
@@ -217,24 +247,33 @@ class VideoModel extends Model
         global $config;
 
         $result = [
-            'dir'   => null,
-            'name'  => null,
-            'ext'   => null,
-            'size'  => null,
-            'sizes' => null
+            'dir'           => null,
+            'name'          => null,
+            'ext'           => null,
+            'size'          => null,
+            'sizes'         => null,
+            'crop_square'   => null,
+            'crop_custom'   => null
         ];
 
-        if (!isset($config['video']) || !isset($config['video']['type']) || !isset($config['video']['type'][$type])) {
+        if (
+            !isset($config['video']) ||
+            !isset($config['video']['type']) ||
+            !isset($config['video']['type'][$type])
+        ) {
             return $result;
         }
 
         $typeInfo = $config['video']['type'][$type];
 
         // No need create cover
-        if (!isset($typeInfo['cover']) || !isset($typeInfo['cover']['is_need']) || !$typeInfo['cover']['is_need']) {
+        if (
+            !isset($typeInfo['cover']) ||
+            !isset($typeInfo['cover']['is_need']) ||
+            !$typeInfo['cover']['is_need']
+        ) {
             return $result;
         }
-
 
         $ext            = 'jpg';
         $temp_path_dir  = ROOT_DIR . $config['temp']['dir'];
@@ -246,8 +285,8 @@ class VideoModel extends Model
         
         // Create video preview
         $ffmpeg = FFMpeg::create([
-            'ffmpeg.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',
-            'ffprobe.binaries' => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
+            'ffmpeg.binaries'   => ROOT_DIR . '/api/classes/ffmpeg/ffmpeg',
+            'ffprobe.binaries'  => ROOT_DIR . '/api/classes/ffmpeg/ffprobe'
         ]);
         
         // PHP settings -> disable_functions -> delete "proc_open"
@@ -258,13 +297,15 @@ class VideoModel extends Model
         $PhotoModel = new PhotoModel();
         $response = $PhotoModel->uploadCoverByTempPath($temp_path_name, 'video', $type);
 
-        if (isset($response['file_id'])) {
+        if (is_array($response) && isset($response['file_id'])) {
             $result = [
-                'dir'   => $response['dir'],
-                'name'  => $response['name'],
-                'ext'   => $response['ext'],
-                'size'  => $response['size'],
-                'sizes' => $response['sizes']
+                'dir'           => $response['dir'],
+                'name'          => $response['name'],
+                'ext'           => $response['ext'],
+                'size'          => $response['size'],
+                'sizes'         => $response['sizes'],
+                'crop_square'   => $response['crop_square'],
+                'crop_custom'   => $response['crop_custom'],
             ];
         }
 

@@ -123,6 +123,10 @@ class Image
         } 
     }
 
+    /**
+     * Get rotate info
+     * @return int
+     */
     public function getRotate()
     {
         $exif = exif_read_data($this->path);
@@ -149,8 +153,119 @@ class Image
         return $rotate;
     }
 
-    public function crop(array $params, int $quality = 90, string $new_filename = null, int $is_auto = 1)
+    /**
+     * Crop square image
+     * @param array|null $params
+     * @param int|null $quality
+     * @param string|null $new_filename
+     * @return mixed
+     */
+    public function cropSquare(array $params = null, int $quality = null, string $new_filename = null)
     {
+        if (is_null($quality)) {
+            $quality = 90;
+        }
+
+        try {
+
+            $source = self::createSource($this->path);
+
+            if (!$source) {
+                return false;
+            }
+
+            $sourceInfo = self::getInfo($this->path);
+
+            // Side max size
+            $max = ($sourceInfo['width'] < $sourceInfo['height']) ? $sourceInfo['width'] : $sourceInfo['height'];
+
+            // Set auto params to crop
+            $left   = (int)(($sourceInfo['width'] - $max) / 2);
+            $top    = (int)(($sourceInfo['height'] - $max) / 2);
+            $width  = $max;
+            $height = $max;
+
+            $can_set_custom_params = 0;
+
+            // Check custom params to crop
+            if (
+                !empty($params) &&
+                isset($params['left']) && isset($params['top']) && isset($params['width']) &&
+                !is_null($params['left']) && !is_null($params['top']) && !is_null($params['width'])
+            ) {
+
+                $can_set_custom_params = 1;
+
+                if ($params['width'] > $max) {
+                    $can_set_custom_params = 0;
+                }
+
+                if (!($params['left'] >= 0 && $params['width'] + $params['left'] <= $max)) {
+                    $can_set_custom_params = 0;
+                }
+
+                if (!($params['top'] >= 0 && $params['width'] + $params['top'] <= $max)) {
+                    $can_set_custom_params = 0;
+                }
+	        }
+
+            // Can set custom params
+            if ($can_set_custom_params) {
+                $left   = (int)$params['left'];
+                $top    = (int)$params['top'];
+                $width  = (int)$params['width'];
+                $height = (int)$params['width'];
+            }
+
+            if (empty($new_filename)) {
+                $new_filename = $this->filename . '_square' . $width . '.' . $this->ext;
+            }
+
+            $image = imagecreatetruecolor($width, $height);
+
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+            imagecopyresampled($image, $source, 0, 0, $left, $top, $width, $height, $width, $height);
+
+            $path = $this->dir . $new_filename;
+
+            if ($this->type == IMAGETYPE_JPEG) {
+            
+                imagejpeg($image, $path, $quality);
+
+            } else if ($this->type == IMAGETYPE_PNG) {
+
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
+                imagepng($image, $path);
+
+            } else if ($this->type == IMAGETYPE_GIF) {
+                
+                imagegif($image, $path);
+
+            } else {
+
+                return false;
+
+            }
+
+            imagedestroy($image);
+
+            return $path;
+
+        } catch (\Exception $exception) {
+
+            return false;
+
+        }
+    }
+
+    public function crop(array $params, int $quality = null, string $new_filename = null, int $is_auto = 1)
+    {
+        if (is_null($quality)) {
+            $quality = 90;
+        }
+
         try {
 
             $source = self::createSource($this->path);
@@ -246,26 +361,40 @@ class Image
         }
     }
 
-    public function resize(string $path, int $width, int $height, int $quality = 90, string $new_filename = null)
+    /**
+     * Resize image
+     * @param int|null $width
+     * @param int|null $quality
+     * @param string|null $new_filename
+     * @return mixed
+     */
+    public function resize(int $width, int $quality = null, string $new_filename = null)
     {
+        if (is_null($quality)) {
+            $quality = 90;
+        }
+
         try {
 
-            if ($new_filename == '' || is_null($new_filename)) {
+            if (empty($new_filename)) {
                 $arr = explode('_', $this->filename);
-                $new_filename = $arr[0] . '_' . $width . 'x' . $height . '.' . $this->ext;
+                $new_filename = $arr[0] . '_' . $width . '.' . $this->ext;
             }
 
-            $source = self::createSource($path);
+            $source = self::createSource($this->path);
 
             if (!$source) {
                 return false;
             }
 
-            $info = self::getInfo($path);
+            $info = self::getInfo($this->path);
 
             if (!$info) {
                 return false;
             }
+
+            // Calculate height
+            $height = (int)(($info['height'] * $width) / $info['width']);
 
             $image = imagecreatetruecolor($width, $height);
 

@@ -17,7 +17,9 @@ use api\classes\Entity;
  * @property string $ext
  * @property double $size
  * @property string $hash
- * @property string $sizes
+ * @property string|null $sizes
+ * @property string|null $crop_square
+ * @property string|null $crop_custom
  * @property int $time
  * @property int $hide
  * @property int $resize_status
@@ -37,6 +39,8 @@ class Cover extends Entity
         'size',
         'hash',
         'sizes',
+        'crop_square',
+        'crop_custom',
         'time',
         'hide',
         'resize_status'
@@ -54,6 +58,8 @@ class Cover extends Entity
         'size'          => 'double',
         'hash'          => 'string',
         'sizes'         => 'string',
+        'crop_square'   => 'string',
+        'crop_custom'   => 'string',
         'time'          => 'integer',
         'hide'          => 'integer',
         'resize_status' => 'integer'

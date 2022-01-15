@@ -17,7 +17,9 @@ use api\classes\Entity;
  * @property string|null $fields
  * @property double $size
  * @property string $hash
- * @property string $sizes
+ * @property string|null $sizes
+ * @property string|null $crop_square
+ * @property string|null $crop_custom
  * @property int $time
  * @property int $is_use
  * @property int $hide
@@ -38,6 +40,8 @@ class Photo extends Entity
         'size',
         'hash',
         'sizes',
+        'crop_square',
+        'crop_custom',
         'time',
         'is_use',
         'hide',
@@ -56,6 +60,8 @@ class Photo extends Entity
         'size'          => 'double',
         'hash'          => 'string',
         'sizes'         => 'string',
+        'crop_square'   => 'string',
+        'crop_custom'   => 'string',
         'time'          => 'integer',
         'is_use'        => 'integer',
         'hide'          => 'integer',
@@ -73,6 +79,7 @@ class Photo extends Entity
     const ERROR_ALLOW_TYPES     = self::class . 9;
     const ERROR_OPTIMIZE        = self::class . 10;
     const ERROR_CROP            = self::class . 11;
+    const ERROR_SAVE            = self::class . 12;
 
     const SALT = 'photo';
 }

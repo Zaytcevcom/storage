@@ -36,24 +36,41 @@ class AudioModel extends Model
             return Audio::ERROR_NOT_FOUND;
         }
 
+        // File cover sizes
         $cover_sizes = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : [];
 
         foreach ($cover_sizes as $key => $value) {
             $cover_sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
         }
 
+        // File cover crop square
+        $cover_crop_square = (!empty($model->cover_crop_square)) ? json_decode($model->cover_crop_square, true) : [];
+
+        foreach ($cover_crop_square as $key => $value) {
+            $cover_crop_square[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
+        // File cover crop custom
+        $cover_crop_custom = (!empty($model->cover_crop_custom)) ? json_decode($model->cover_crop_custom, true) : [];
+
+        foreach ($cover_crop_custom as $key => $value) {
+            $cover_crop_custom[$key] = $config['scheme'] . '://' . $model->host . $value;
+        }
+
         $data = [
-            'file_id'       => $model->file_id,
-            'fields'        => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
-            'src'           => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
-            'cover'         => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
-            'cover_sizes'   => $cover_sizes,
-            'duration'      => $model->duration,
-            'type'          => $model->type,
-            'hash'          => $model->hash,
-            'size'          => $model->size,
-            'time'          => $model->time,
-            'is_use'        => $model->is_use
+            'file_id'           => $model->file_id,
+            'fields'            => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
+            'src'               => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
+            'cover'             => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
+            'cover_sizes'       => (!empty($cover_sizes)) ? $cover_sizes : null,
+            'cover_crop_square' => (!empty($cover_crop_square)) ? $cover_crop_square : null,
+            'cover_crop_custom' => (!empty($cover_crop_custom)) ? $cover_crop_custom : null,
+            'duration'          => $model->duration,
+            'type'              => $model->type,
+            'hash'              => $model->hash,
+            'size'              => $model->size,
+            'time'              => $model->time,
+            'is_use'            => $model->is_use
         ];
 
         return $data;
@@ -156,35 +173,49 @@ class AudioModel extends Model
 
         $modelAudio = null;
 
-        while (true) {
+        $countAttempt = 50;
+
+        while ($countAttempt > 0) {
 
             try {
-                $modelAudio = new Audio();
-                $modelAudio->file_id        = $this->uniqid();
-                $modelAudio->type           = $type;
-                $modelAudio->host           = $config['domain'];
-                $modelAudio->dir            = $result['dir'];
-                $modelAudio->name           = $result['name'];
-                $modelAudio->ext            = $ext;
-                $modelAudio->fields         = json_encode($fields);
-                $modelAudio->size           = (int)$size;
-                $modelAudio->duration       = (int)$audioInfo['playtime_seconds'];
-                $modelAudio->hash           = $hash;
-                $modelAudio->sizes          = null;
-                $modelAudio->cover_dir      = $coverInfo['dir'];
-                $modelAudio->cover_name     = $coverInfo['name'];
-                $modelAudio->cover_ext      = $coverInfo['ext'];
-                $modelAudio->cover_size     = $coverInfo['size'];
-                $modelAudio->cover_sizes    = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
-                $modelAudio->time           = time();
-                $modelAudio->is_use         = 0;
-                $modelAudio->hide           = 0;
+                $modelAudio                     = new Audio();
+                $modelAudio->file_id            = $this->uniqid();
+                $modelAudio->type               = $type;
+                $modelAudio->host               = $config['domain'];
+                $modelAudio->dir                = $result['dir'];
+                $modelAudio->name               = $result['name'];
+                $modelAudio->ext                = $ext;
+                $modelAudio->fields             = json_encode($fields);
+                $modelAudio->size               = (int)$size;
+                $modelAudio->duration           = (int)$audioInfo['playtime_seconds'];
+                $modelAudio->hash               = $hash;
+                $modelAudio->sizes              = null;
+                $modelAudio->cover_dir          = $coverInfo['dir'];
+                $modelAudio->cover_name         = $coverInfo['name'];
+                $modelAudio->cover_ext          = $coverInfo['ext'];
+                $modelAudio->cover_size         = $coverInfo['size'];
+                $modelAudio->cover_sizes        = (!empty($coverInfo['sizes'])) ? json_encode($coverInfo['sizes']) : null;
+                $modelAudio->cover_crop_square  = (!empty($coverInfo['crop_square'])) ? json_encode($coverInfo['crop_square']) : null;
+                $modelAudio->cover_crop_custom  = (!empty($coverInfo['crop_custom'])) ? json_encode($coverInfo['crop_custom']) : null;
+                $modelAudio->time               = time();
+                $modelAudio->is_use             = 0;
+                $modelAudio->hide               = 0;
                 
                 if ($modelAudio->save()) {
                     break;
                 }
 
             } catch (\Exception $exception) {
+
+                $countAttempt--;
+
+                if ($countAttempt <= 0) {
+                    
+                    // todo: delete files
+
+                    return Audio::ERROR_SAVE;
+                }
+
                 continue;
             }
         }
@@ -206,16 +237,20 @@ class AudioModel extends Model
         global $config;
 
         $result = [
-            'dir'   => null,
-            'name'  => null,
-            'ext'   => null,
-            'size'  => null,
-            'sizes' => null
+            'dir'           => null,
+            'name'          => null,
+            'ext'           => null,
+            'size'          => null,
+            'sizes'         => null,
+            'crop_square'   => null,
+            'crop_custom'   => null
         ];
 
         $ext            = 'jpg';
         $temp_path_dir  = ROOT_DIR . $config['temp']['dir'];
         $temp_path_name = $temp_path_dir . '/' . pathinfo($path, PATHINFO_FILENAME) . '.' . $ext;
+
+        // todo: get cover from file...
 
         return $result;
     }
