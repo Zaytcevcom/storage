@@ -78,4 +78,29 @@ class Cover extends Entity
     const ERROR_CROP            = self::class . 11;
 
     const SALT = 'cover';
+
+        /**
+     * @param array $data
+     * @return array
+     */
+    public static function getInfoProtected($data) : array
+    {
+        $items = [];
+
+        foreach ($data as $elem) {
+
+            $items[] = [
+                'file_id'       => $elem->file_id,
+                'dir'           => $elem->dir,
+                'name'          => $elem->name,
+                'ext'           => $elem->ext,
+                'size'          => (int)$elem->size,
+                'sizes'         => (!empty($elem->sizes)) ? json_decode($elem->sizes, true) : null,
+                'crop_square'   => (!empty($elem->crop_square)) ? json_decode($elem->crop_square, true) : null,
+                'crop_custom'   => (!empty($elem->crop_custom)) ? json_decode($elem->crop_custom, true) : null,
+            ];
+        }
+
+        return $items;
+    }
 }

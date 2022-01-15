@@ -12,6 +12,8 @@ class Image
     private $path;
     private $type;
 
+    private $pref_square = 'square';
+
     function __construct($path)
     {
         $this->path = $path;
@@ -179,7 +181,7 @@ class Image
             // Side max size
             $max = ($sourceInfo['width'] < $sourceInfo['height']) ? $sourceInfo['width'] : $sourceInfo['height'];
 
-            // Set auto params to crop
+            // Set default params to crop
             $left   = (int)(($sourceInfo['width'] - $max) / 2);
             $top    = (int)(($sourceInfo['height'] - $max) / 2);
             $width  = $max;
@@ -218,7 +220,7 @@ class Image
             }
 
             if (empty($new_filename)) {
-                $new_filename = $this->filename . '_square' . $width . '.' . $this->ext;
+                $new_filename = $this->filename . '_' . $this->pref_square . $width . '.' . $this->ext;
             }
 
             $image = imagecreatetruecolor($width, $height);
@@ -260,7 +262,15 @@ class Image
         }
     }
 
-    public function crop(array $params, int $quality = null, string $new_filename = null, int $is_auto = 1)
+    /**
+     * Crop image
+     * @param array|null $default_params
+     * @param array|null $params
+     * @param int|null $quality
+     * @param string|null $new_filename
+     * @return mixed
+     */
+    public function crop(array $default_params = null, array $params, int $quality = null, string $new_filename = null)
     {
         if (is_null($quality)) {
             $quality = 90;

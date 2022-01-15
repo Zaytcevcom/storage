@@ -82,4 +82,57 @@ class Photo extends Entity
     const ERROR_SAVE            = self::class . 12;
 
     const SALT = 'photo';
+
+    /**
+     * @param array $data
+     * @return array
+     */
+    public static function getInfo($data) : array
+    {
+        global $config;
+
+        $items = [];
+
+        $time = time();
+
+        foreach ($data as $elem) {
+
+            // File sizes
+            $sizes = (!empty($elem->sizes)) ? json_decode($elem->sizes, true) : [];
+
+            foreach ($sizes as $key => $value) {
+                $sizes[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            // File crop square
+            $crop_square = (!empty($elem->crop_square)) ? json_decode($elem->crop_square, true) : [];
+
+            foreach ($crop_square as $key => $value) {
+                $crop_square[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            // File crop custom
+            $crop_custom = (!empty($elem->crop_custom)) ? json_decode($elem->crop_custom, true) : [];
+
+            foreach ($crop_custom as $key => $value) {
+                $crop_custom[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            $items[] = [
+                'file_id'       => $elem->file_id,
+                'fields'        => (!empty($elem->fields)) ? json_decode($elem->fields, true) : null,
+                'original'      => $config['scheme'] . '://' . $elem->host . $elem->dir . $elem->name . '.' . $elem->ext,
+                'sizes'         => (!empty($sizes)) ? $sizes : null,
+                'crop_square'   => (!empty($crop_square)) ? $crop_square : null,
+                'crop_custom'   => (!empty($crop_custom)) ? $crop_custom : null,
+                'type'          => $elem->type,
+                'hash'          => $elem->hash,
+                'size'          => $elem->size,
+                'time'          => $elem->time,
+                'is_use'        => $elem->is_use
+            ];
+        }
+
+        return $items;
+    }
 }

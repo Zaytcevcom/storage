@@ -13,8 +13,8 @@ if ($needFields) {
 $file_id    = $controller->getToStringOrNull('file_id');
 $secret_key = $controller->getToStringOrNull('secret_key');
 
-// Resize
-$data = $model->resize($file_id, $secret_key);
+// Processing file by default settings
+$data = $model->processingDefault($file_id, $secret_key);
 
 if ($data === Photo::ERROR_SECRET_KEY) {
     return $controller->error(2, 'Invalid secret key!');
@@ -24,32 +24,17 @@ if ($data === Photo::ERROR_NOT_FOUND) {
     return $controller->error(3, 'File not found!');
 }
 
-if ($data === Photo::ERROR_OPTIMIZE) {
-    return $controller->error(4, 'Error optimize file!');
-}
-
-if ($data === Photo::ERROR_CROP) {
-    return $controller->error(5, 'Error crop file!');
-}
-
-if ($data === Photo::ERROR_SAVE) {
-    return $controller->error(6, 'Error save file!');
-}
-
 return $controller->success($data);
 
 /**
- * @OA\Post(
- *  path="/photo.resize",
- *  summary="Создает изображения в меньшем разрешении",
- *  description="Создает изображения в меньшем разрешении
+ * @OA\Get(
+ *  path="/photo.processingDefault",
+ *  summary="Обновление размеров изображений и миниатюр с настройками по умолчанию",
+ *  description="Обновление размеров изображений и миниатюр с настройками по умолчанию
  *  **Коды ошибок:**
  *  1 - Missing a required field
  *  2 - Invalid secret key
- *  3 - File not found
- *  4 - Error optimize file!
- *  5 - Error crop file!
- *  6 - Error save file!",
+ *  3 - File not found",
  *  tags={"Photo"},
  *  @OA\Parameter(
  *    name="file_id",
