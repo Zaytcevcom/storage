@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace api\models\protected;
+namespace api\models\protect;
 
 use api\entities\Audio;
 use api\classes\Model;
 use getID3;
 
 /**
- * AudioProtectedModel
+ * AudioProtectModel
  */
-class AudioProtectedModel extends Model
+class AudioProtectModel extends Model
 {
     private $algo = 'sha1';
     private $mode = 0755; // mkdir mode

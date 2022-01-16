@@ -7,7 +7,6 @@ namespace api\entities;
 use api\classes\Entity;
 
 /**
- * @property int $id
  * @property string $model
  * @property string $action
  * @property double $duration
@@ -29,7 +28,6 @@ class Statistics extends Entity
     ];
 
     protected $casts = [
-        'id'            => 'integer',
         'model'         => 'string',
         'action'        => 'string',
         'duration'      => 'double',

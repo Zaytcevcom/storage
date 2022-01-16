@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace api\models\protected;
+namespace api\models\protect;
 
 use api\entities\Video;
 use api\classes\Model;
@@ -11,9 +11,9 @@ use FFMpeg\FFMpeg;
 use getID3;
 
 /**
- * VideoProtectedModel
+ * VideoProtectModel
  */
-class VideoProtectedModel extends Model
+class VideoProtectModel extends Model
 {
     private $algo = 'sha1';
     private $mode = 0755; // mkdir mode
@@ -28,7 +28,7 @@ class VideoProtectedModel extends Model
     public function uploadByTempPath(string $file_temp_path = null, string $type = null, array $params = [])
     {
         global $config;
-
+        
         if (empty($file_temp_path)) {
             return Video::ERROR_FAIL_UPLOAD;
         }
@@ -208,7 +208,7 @@ class VideoProtectedModel extends Model
         $video->frame(TimeCode::fromSeconds(1))->save($temp_path_name);
         
         // Upload video cover
-        $PhotoModel = new PhotoProtectedModel();
+        $PhotoModel = new PhotoProtectModel();
         $response = $PhotoModel->uploadCoverByTempPath($temp_path_name, 'video', $type);
 
         if (is_array($response) && isset($response['file_id'])) {

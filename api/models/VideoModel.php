@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace api\models;
 
-use api\models\protected\VideoProtectedModel;
 use api\entities\Video;
+use api\models\protect\PhotoProtectModel;
+use api\models\protect\VideoProtectModel;
 
 /**
  * VideoModel
  */
-class VideoModel extends VideoProtectedModel
+class VideoModel extends VideoProtectModel
 { 
     /**
      * Get file info
@@ -191,7 +192,10 @@ class VideoModel extends VideoProtectedModel
         }
 
         // Crop and resize by settings
-        $processing = $this->processingModelByDefaultSettings($model, $config['photo']['type'][$model->type]);
+        $PhotoProtectedModel = new PhotoProtectModel();
+        $processing = $PhotoProtectedModel->processingModelCoverByDefaultSettings($model, $config['video']['type'][$model->type]['cover']);
+
+        // Разный path для photo и cover (т.к. разные поля)
 
         // Save info
         $model->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;

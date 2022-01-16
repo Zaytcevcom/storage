@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace api\models;
 
-use api\models\protected\AudioProtectedModel;
 use api\entities\Audio;
+use api\models\protect\AudioProtectModel;
 
 /**
  * AudioModel
  */
-class AudioModel extends AudioProtectedModel
+class AudioModel extends AudioProtectModel
 {
     /**
      * Get file info

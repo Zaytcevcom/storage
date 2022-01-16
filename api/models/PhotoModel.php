@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace api\models;
 
-use api\models\protected\PhotoProtectedModel;
 use api\entities\Photo;
+use api\models\protect\PhotoProtectModel;
 
 /**
  * PhotoModel
  */
-class PhotoModel extends PhotoProtectedModel
+class PhotoModel extends PhotoProtectModel
 {
     /**
      * Get file info

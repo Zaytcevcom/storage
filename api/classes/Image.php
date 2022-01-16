@@ -187,8 +187,6 @@ class Image
             $width  = $max;
             $height = $max;
 
-            $can_set_custom_params = 0;
-
             // Check custom params to crop
             if (
                 !empty($params) &&
@@ -209,15 +207,15 @@ class Image
                 if (!($params['top'] >= 0 && $params['width'] + $params['top'] <= $max)) {
                     $can_set_custom_params = 0;
                 }
-	        }
 
-            // Can set custom params
-            if ($can_set_custom_params) {
-                $left   = (int)$params['left'];
-                $top    = (int)$params['top'];
-                $width  = (int)$params['width'];
-                $height = (int)$params['width'];
-            }
+                // Can set custom params
+                if ($can_set_custom_params) {
+                    $left   = (int)$params['left'];
+                    $top    = (int)$params['top'];
+                    $width  = (int)$params['width'];
+                    $height = (int)$width;
+                }
+	        }
 
             if (empty($new_filename)) {
                 $new_filename = $this->filename . '_' . $this->pref_square . $width . '.' . $this->ext;
@@ -270,7 +268,7 @@ class Image
      * @param string|null $new_filename
      * @return mixed
      */
-    public function crop(array $default_params = null, array $params, int $quality = null, string $new_filename = null)
+    public function crop(array $default_params = null, array $params = null, int $quality = null, string $new_filename = null)
     {
         if (is_null($quality)) {
             $quality = 90;
@@ -286,49 +284,60 @@ class Image
 
             $sourceInfo = self::getInfo($this->path);
 
-            if (isset($params['width']) && isset($params['height']) && !empty($params['width']) && !empty($params['height'])) {
+            // Set default params to crop
+            $delta_height = $sourceInfo['height'] / $default_params['height'];
+            $possible_width = (int)($delta_height * $default_params['width']);
 
-	            $delta_height = $sourceInfo['height'] / $params['height'];
-	            $possible_width = (int)($delta_height * $params['width']);
+            if ($possible_width <= $sourceInfo['width']) {
 
-	            if ($possible_width <= $sourceInfo['width']) {
-
-	            	$max_width 	= $possible_width;
-	            	$max_height = $sourceInfo['height'];
-
-	            } else {
-
-	            	$delta_width = $sourceInfo['width'] / $params['width'];
-
-	            	$max_width 	= $sourceInfo['width'];
-	            	$max_height = (int)($delta_width * $params['height']);
-
-	            }
-
-	        } else {
-
-	        	$max_width = $max_height = ($sourceInfo['width'] < $sourceInfo['height']) ? $sourceInfo['width'] : $sourceInfo['height'];
-
-	        }
-
-
-            if ($is_auto) {
-
-            	$left   = (int)(($sourceInfo['width'] - $max_width) / 2);
-                $top    = (int)(($sourceInfo['height'] - $max_height) / 2);
-                $width  = $max_width;
-                $height = $max_height;
+                $max_width 	= $possible_width;
+                $max_height = $sourceInfo['height'];
 
             } else {
 
-                $left   = (int)$params['left'];
-                $top    = (int)$params['top'];
-                $width  = ($max_width > $params['width']) ? $params['width'] : $max_width;
-                $height = ($max_height > $params['height']) ? $params['height'] : $max_height;
+                $delta_width = $sourceInfo['width'] / $default_params['width'];
+
+                $max_width 	= $sourceInfo['width'];
+                $max_height = (int)($delta_width * $default_params['height']);
 
             }
 
-            if ($new_filename == '' || is_null($new_filename)) {
+            $left   = (int)(($sourceInfo['width'] - $max_width) / 2);
+            $top    = (int)(($sourceInfo['height'] - $max_height) / 2);
+            $width  = $max_width;
+            $height = $max_height;
+
+            // Check custom params to crop
+            if (
+                !empty($params) &&
+                isset($params['left']) && isset($params['top']) && isset($params['width']) && isset($params['height']) &&
+                !is_null($params['left']) && !is_null($params['top']) && !is_null($params['width']) && !is_null($params['height'])
+            ) {
+
+                $can_set_custom_params = 1;
+
+                if ($params['width'] > $max_width) {
+                    $can_set_custom_params = 0;
+                }
+
+                if (!($params['left'] >= 0 && $params['width'] + $params['left'] <= $max_width)) {
+                    $can_set_custom_params = 0;
+                }
+
+                if (!($params['top'] >= 0 && $params['height'] + $params['top'] <= $max_height)) {
+                    $can_set_custom_params = 0;
+                }
+
+                // Can set custom params
+                if ($can_set_custom_params) {
+                    $left   = (int)$params['left'];
+                    $top    = (int)$params['top'];
+                    $width  = (int)$params['width'];
+                    $height = (int)$params['height'];
+                }
+	        }
+
+            if (empty($new_filename)) {
                 $new_filename = $this->filename . '_' . $width . 'x' . $height . '.' . $this->ext;
             }
 
@@ -375,20 +384,25 @@ class Image
      * Resize image
      * @param int|null $width
      * @param int|null $quality
+     * @param string|null $prefix
      * @param string|null $new_filename
      * @return mixed
      */
-    public function resize(int $width, int $quality = null, string $new_filename = null)
+    public function resize(int $width, int $quality = null, string $prefix = null, string $new_filename = null)
     {
         if (is_null($quality)) {
             $quality = 90;
+        }
+
+        if (empty($prefix)) {
+            $prefix = '';
         }
 
         try {
 
             if (empty($new_filename)) {
                 $arr = explode('_', $this->filename);
-                $new_filename = $arr[0] . '_' . $width . '.' . $this->ext;
+                $new_filename = $arr[0] . '_' . $prefix . $width . '.' . $this->ext;
             }
 
             $source = self::createSource($this->path);

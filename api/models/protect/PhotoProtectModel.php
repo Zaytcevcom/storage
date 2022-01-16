@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace api\models\protected;
+namespace api\models\protect;
 
 use api\entities\Photo;
 use api\entities\Cover;
@@ -11,9 +11,9 @@ use api\classes\Image;
 use getID3;
 
 /**
- * PhotoProtectedModel
+ * PhotoProtectModel
  */
-class PhotoProtectedModel extends Model
+class PhotoProtectModel extends Model
 {
     private $algo       = 'sha1';
     private $mode       = 0755; // mkdir mode
@@ -246,7 +246,7 @@ class PhotoProtectedModel extends Model
         }
 
         // Crop and resize by settings
-        $processing = $this->processingModelByDefaultSettings($modelCover, $config[$media_type]['type'][$type]['cover']);
+        $processing = $this->processingModelCoverByDefaultSettings($modelCover, $config[$media_type]['type'][$type]['cover']);
 
         // Save info
         $modelCover->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
@@ -346,6 +346,10 @@ class PhotoProtectedModel extends Model
      */
     protected function fileOptimize(string $path, int $quality, int $rotate)
     {
+        if (strpos($path, ROOT_DIR) === false) {
+            $path = ROOT_DIR . $path;
+        }
+
         $image = new Image($path);
         return $image->optimize($quality, $rotate);
     }
@@ -355,12 +359,17 @@ class PhotoProtectedModel extends Model
      * @param string $path
      * @param int $width
      * @param int|null $quality
+     * @param string|null $prefix
      * @return mixed
      */
-    protected function fileResize(string $path, int $width, int $quality = null)
+    protected function fileResize(string $path, int $width, int $quality = null, string $prefix = null)
     {
+        if (strpos($path, ROOT_DIR) === false) {
+            $path = ROOT_DIR . $path;
+        }
+
         $image = new Image($path);
-        $resize_path = $image->resize($width, $quality);
+        $resize_path = $image->resize($width, $quality, $prefix);
         
         return Image::withoutRootDir(ROOT_DIR, ($resize_path) ? $resize_path : $path);
     }
@@ -377,6 +386,10 @@ class PhotoProtectedModel extends Model
     {
         if (empty($path)) {
             return false;
+        }
+
+        if (strpos($path, ROOT_DIR) === false) {
+            $path = ROOT_DIR . $path;
         }
 
         $image  = new Image($path);
@@ -400,6 +413,10 @@ class PhotoProtectedModel extends Model
     {
         if (empty($path)) {
             return false;
+        }
+
+        if (strpos($path, ROOT_DIR) === false) {
+            $path = ROOT_DIR . $path;
         }
 
         $image  = new Image($path);
@@ -438,13 +455,53 @@ class PhotoProtectedModel extends Model
     }
 
     /**
-     * Processing file by settings
-     * @param object|null $model
+     * Processing file cover by settings
+     * @param Cover|null $model
      * @param array|null $settings
      * @param array|null $params
      * @return mixed
      */
-    protected function processingModelByDefaultSettings(object $model, array $settings = null, array $params = null)
+    public function processingModelCoverByDefaultSettings(Cover $model, array $settings = null, array $params = null)
+    {
+        // Path to original file
+        $path = ROOT_DIR . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext;
+
+
+        // [Resize] Get old files
+        $old_files_resize = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : null;
+
+        // [Resize] Resize
+        $sizesResult = $this->fileResizeBySettings($settings, $path, $this->quality, $old_files_resize);
+
+        
+        // [Crop square] Get old crop square files
+        $old_files_square = (!empty($model->cover_crop_square)) ? json_decode($model->cover_crop_square, true) : null;
+
+        // [Crop square] Crop and resize
+        $cropSquareResult = $this->fileCropBySettings($settings, 0, $path, $params, $this->quality, $old_files_square);
+
+
+        // [Crop custom] Get old crop custom files
+        $old_files_custom = (!empty($model->cover_crop_custom)) ? json_decode($model->cover_crop_custom, true) : null;
+
+        // [Crop custom] Crop and resize
+        $cropCustomResult = $this->fileCropBySettings($settings, 1, $path, $params, $this->quality, $old_files_custom);
+
+        return [
+            'sizes'         => $sizesResult,
+            'crop_square'   => $cropSquareResult,
+            'crop_custom'   => $cropCustomResult
+        ];
+    }
+
+    /**
+     * Processing file by settings
+     * @param Photo|null $model
+     * @param array|null $settings
+     * @param array|null $params
+     * @return mixed
+     */
+    protected function processingModelByDefaultSettings(Photo $model, array $settings = null, array $params = null)
     {
         // Path to original file
         $path = ROOT_DIR . $model->dir . $model->name . '.' . $model->ext;
@@ -455,8 +512,8 @@ class PhotoProtectedModel extends Model
 
         // [Resize] Resize
         $sizesResult = $this->fileResizeBySettings($settings, $path, $this->quality, $old_files_resize);
-
         
+
         // [Crop square] Get old crop square files
         $old_files_square = (!empty($model->crop_square)) ? json_decode($model->crop_square, true) : null;
 
@@ -489,7 +546,7 @@ class PhotoProtectedModel extends Model
     protected function fileCropBySettings(array $settings = null, $is_custom = 0, string $path = null, array $params = null, int $quality = null, array $files = null)
     {
         $field = ($is_custom) ? 'crop_custom' : 'crop_square';
-
+        
         if (empty($path)) {
             return false;
         }
@@ -519,7 +576,7 @@ class PhotoProtectedModel extends Model
 
             return false;
         }
-
+        
         // Path to new crop file
         if ($is_custom) {
             
@@ -540,21 +597,28 @@ class PhotoProtectedModel extends Model
             return false;
         }
 
-        // Delete old files
-        $this->fileDeleteOld($files); // todo: подумать тут ли оставить удаление?
-
         $result = [];
 
         // Resize
-        if (!isset($settings[$field])) {
+        if (isset($settings[$field])) {
+
+            $prefix = ($is_custom) ? 'c' : 's';
+
             foreach ($settings[$field]['resize'] as $width) {
-                $result[$width] = $this->fileResize($path, $width, $quality);
+                $result[$width] = $this->fileResize($path, $width, $quality, $prefix);
             }
         }
 
         // Delete max crop file
-        if (file_exists($path)) {
-            unlink($path);
+        $this->fileDeleteOld([$path]);
+
+        // Delete old files
+        if (!empty($files)) {
+            foreach ($files as $item) {
+                if (!in_array($item, $result)) {
+                    $this->fileDeleteOld([$item]);
+                }
+            }
         }
         
         ksort($result);
@@ -587,11 +651,11 @@ class PhotoProtectedModel extends Model
 
             return false;
         }
-
+        
         $result = [];
 
         // Resize
-        if (!isset($settings['sizes'])) {
+        if (isset($settings['sizes'])) {
             foreach ($settings['sizes']['resize'] as $width) {
                 $result[$width] = $this->fileResize($path, $width, $quality);
             }
