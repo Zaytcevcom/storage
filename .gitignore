@@ -7,6 +7,7 @@
 /files
 
 # composer vendor dir
+/composer.lock
 /vendor
 
 # Mac DS_Store Files
