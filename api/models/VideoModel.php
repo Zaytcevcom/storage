@@ -33,52 +33,7 @@ class VideoModel extends VideoProtectModel
             return Video::ERROR_NOT_FOUND;
         }
 
-        // File sizes
-        $src_sizes = (!empty($model->sizes)) ? json_decode($model->sizes, true) : [];
-
-        foreach ($src_sizes as $key => $value) {
-            $src_sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
-        }
-
-        // File cover sizes
-        $cover_sizes = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : [];
-
-        foreach ($cover_sizes as $key => $value) {
-            $cover_sizes[$key] = $config['scheme'] . '://' . $model->host . $value;
-        }
-
-        // File cover crop square
-        $cover_crop_square = (!empty($model->cover_crop_square)) ? json_decode($model->cover_crop_square, true) : [];
-
-        foreach ($cover_crop_square as $key => $value) {
-            $cover_crop_square[$key] = $config['scheme'] . '://' . $model->host . $value;
-        }
-
-        // File cover crop custom
-        $cover_crop_custom = (!empty($model->cover_crop_custom)) ? json_decode($model->cover_crop_custom, true) : [];
-
-        foreach ($cover_crop_custom as $key => $value) {
-            $cover_crop_custom[$key] = $config['scheme'] . '://' . $model->host . $value;
-        }
-
-        $data = [
-            'file_id'           => $model->file_id,
-            'fields'            => (!empty($model->fields)) ? json_decode($model->fields, true) : null,
-            'src'               => $config['scheme'] . '://' . $model->host . $model->dir . $model->name . '.' . $model->ext,
-            'src_sizes'         => $src_sizes,
-            'cover'             => $config['scheme'] . '://' . $model->host . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext,
-            'cover_sizes'       => (!empty($cover_sizes)) ? $cover_sizes : null,
-            'cover_crop_square' => (!empty($cover_crop_square)) ? $cover_crop_square : null,
-            'cover_crop_custom' => (!empty($cover_crop_custom)) ? $cover_crop_custom : null,
-            'duration'          => $model->duration,
-            'type'              => $model->type,
-            'hash'              => $model->hash,
-            'size'              => $model->size,
-            'time'              => $model->time,
-            'is_use'            => $model->is_use
-        ];
-
-        return $data;
+        return Video::getInfo([$model])[0];
     }
 
     /**
@@ -195,12 +150,10 @@ class VideoModel extends VideoProtectModel
         $PhotoProtectedModel = new PhotoProtectModel();
         $processing = $PhotoProtectedModel->processingModelCoverByDefaultSettings($model, $config['video']['type'][$model->type]['cover']);
 
-        // Разный path для photo и cover (т.к. разные поля)
-
         // Save info
-        $model->sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
-        $model->crop_square = (isset($processing['crop_square']) && $processing['crop_square']) ? json_encode($processing['crop_square']) : null;
-        $model->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
+        $model->cover_sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
+        $model->cover_crop_square = (isset($processing['crop_square']) && $processing['crop_square']) ? json_encode($processing['crop_square']) : null;
+        $model->cover_crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
         $model->save();
 
         return Video::getInfo([$model])[0];

@@ -96,4 +96,67 @@ class Video extends Entity
     const ERROR_SAVE            = self::class . 11;
 
     const SALT = 'video';
+
+    /**
+     * @param array $data
+     * @return array
+     */
+    public static function getInfo($data) : array
+    {
+        global $config;
+
+        $items = [];
+
+        $time = time();
+
+        foreach ($data as $elem) {
+
+            // File sizes
+            $src_sizes = (!empty($elem->sizes)) ? json_decode($elem->sizes, true) : [];
+
+            foreach ($src_sizes as $key => $value) {
+                $src_sizes[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            // File cover sizes
+            $cover_sizes = (!empty($elem->cover_sizes)) ? json_decode($elem->cover_sizes, true) : [];
+
+            foreach ($cover_sizes as $key => $value) {
+                $cover_sizes[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            // File cover crop square
+            $cover_crop_square = (!empty($elem->cover_crop_square)) ? json_decode($elem->cover_crop_square, true) : [];
+
+            foreach ($cover_crop_square as $key => $value) {
+                $cover_crop_square[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            // File cover crop custom
+            $cover_crop_custom = (!empty($elem->cover_crop_custom)) ? json_decode($elem->cover_crop_custom, true) : [];
+
+            foreach ($cover_crop_custom as $key => $value) {
+                $cover_crop_custom[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+            }
+
+            $items[] = [
+                'file_id'           => $elem->file_id,
+                'fields'            => (!empty($elem->fields)) ? json_decode($elem->fields, true) : null,
+                'src'               => $config['scheme'] . '://' . $elem->host . $elem->dir . $elem->name . '.' . $elem->ext,
+                'src_sizes'         => $src_sizes,
+                'cover'             => $config['scheme'] . '://' . $elem->host . $elem->cover_dir . $elem->cover_name . '.' . $elem->cover_ext,
+                'cover_sizes'       => (!empty($cover_sizes)) ? $cover_sizes : null,
+                'cover_crop_square' => (!empty($cover_crop_square)) ? $cover_crop_square : null,
+                'cover_crop_custom' => (!empty($cover_crop_custom)) ? $cover_crop_custom : null,
+                'duration'          => $elem->duration,
+                'type'              => $elem->type,
+                'hash'              => $elem->hash,
+                'size'              => $elem->size,
+                'time'              => $elem->time,
+                'is_use'            => $elem->is_use
+            ];
+        }
+
+        return $items;
+    }
 }
