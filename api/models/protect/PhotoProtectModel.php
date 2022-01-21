@@ -660,6 +660,15 @@ class PhotoProtectModel extends Model
                 $result[$width] = $this->fileResize($path, $width, $quality);
             }
         }
+
+        // Delete old files
+        if (!empty($files)) {
+            foreach ($files as $item) {
+                if (!in_array($item, $result)) {
+                    $this->fileDeleteOld([$item]);
+                }
+            }
+        }
         
         ksort($result);
 
