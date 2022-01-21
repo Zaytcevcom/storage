@@ -20,8 +20,7 @@ function getDirContents($dir, &$results = [])
 }
 
 $path = ROOT_DIR . '/files';
-
-echo PHP_EOL . $path . PHP_EOL;
+$count = 0;
 
 foreach (getDirContents($path) as $file_path) {
 
@@ -41,5 +40,8 @@ foreach (getDirContents($path) as $file_path) {
 
     echo PHP_EOL . 'DELETE: ' . $file_path . PHP_EOL;
     unlink($file_path);
+    $count++;
     
 }
+
+echo PHP_EOL . PHP_EOL . 'DONE! Count files: ' .  $count . PHP_EOL;
