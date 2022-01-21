@@ -464,7 +464,7 @@ class PhotoProtectModel extends Model
     public function processingModelCoverByDefaultSettings(Cover $model, array $settings = null, array $params = null)
     {
         // Path to original file
-        $path = ROOT_DIR . $model->cover_dir . $model->cover_name . '.' . $model->cover_ext;
+        $path = ROOT_DIR . $model->dir . $model->name . '.' . $model->ext;
 
 
         // [Resize] Get old files
