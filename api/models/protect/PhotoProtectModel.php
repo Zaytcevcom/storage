@@ -468,21 +468,21 @@ class PhotoProtectModel extends Model
 
 
         // [Resize] Get old files
-        $old_files_resize = (!empty($model->cover_sizes)) ? json_decode($model->cover_sizes, true) : null;
+        $old_files_resize = (!empty($model->sizes)) ? json_decode($model->sizes, true) : null;
 
         // [Resize] Resize
         $sizesResult = $this->fileResizeBySettings($settings, $path, $this->quality, $old_files_resize);
 
         
         // [Crop square] Get old crop square files
-        $old_files_square = (!empty($model->cover_crop_square)) ? json_decode($model->cover_crop_square, true) : null;
+        $old_files_square = (!empty($model->crop_square)) ? json_decode($model->crop_square, true) : null;
 
         // [Crop square] Crop and resize
         $cropSquareResult = $this->fileCropBySettings($settings, 0, $path, $params, $this->quality, $old_files_square);
 
 
         // [Crop custom] Get old crop custom files
-        $old_files_custom = (!empty($model->cover_crop_custom)) ? json_decode($model->cover_crop_custom, true) : null;
+        $old_files_custom = (!empty($model->crop_custom)) ? json_decode($model->crop_custom, true) : null;
 
         // [Crop custom] Crop and resize
         $cropCustomResult = $this->fileCropBySettings($settings, 1, $path, $params, $this->quality, $old_files_custom);
