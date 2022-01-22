@@ -148,7 +148,7 @@ class VideoModel extends VideoProtectModel
 
         // Crop and resize by settings
         $PhotoProtectedModel = new PhotoProtectModel();
-        $processing = $PhotoProtectedModel->processingModelCoverByDefaultSettings($model, $config['video']['type'][$model->type]['cover']);
+        $processing = $PhotoProtectedModel->processingVideoCoverByDefaultSettings($model, $config['video']['type'][$model->type]['cover']);
 
         // Save info
         $model->cover_sizes       = (isset($processing['sizes']) && $processing['sizes']) ? json_encode($processing['sizes']) : null;
