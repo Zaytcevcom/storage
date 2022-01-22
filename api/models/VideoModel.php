@@ -139,9 +139,10 @@ class VideoModel extends VideoProtectModel
 
         // Check type
         if (
-            !isset($config['photo']) ||
-            !isset($config['photo']['type']) ||
-            !isset($config['photo']['type'][$model->type])
+            !isset($config['video']) ||
+            !isset($config['video']['type']) ||
+            !isset($config['video']['type'][$model->type]) ||
+            !isset($config['video']['type'][$model->type]['cover'])
         ) {
             return Video::ERROR_TYPE;
         }
