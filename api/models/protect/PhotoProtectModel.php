@@ -296,6 +296,10 @@ class PhotoProtectModel extends Model
 
         $name = $model->dir . $model->name . '.' . $model->ext;
 
+        if (!file_exists(ROOT_DIR . $name)) {
+            return 0;
+        }
+
         // Load original file
         $result = $s3->putObject($name, ROOT_DIR . $name, ['ContentType' => $content_type]);
         
@@ -319,6 +323,11 @@ class PhotoProtectModel extends Model
 
                 foreach ($arr as $_name) {
                     
+                    if (!file_exists(ROOT_DIR . $_name)) {
+                        $is_success = 0;
+                        break;
+                    }
+
                     $result = $s3->putObject($_name, ROOT_DIR . $_name, ['ContentType' => $content_type]);
 
                     if (empty($result)) {
