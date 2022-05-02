@@ -9,6 +9,7 @@ use api\classes\Model;
 use FFMpeg\Coordinate\TimeCode;
 use FFMpeg\FFMpeg;
 use getID3;
+use api\classes\S3;
 
 /**
  * VideoProtectModel
@@ -141,6 +142,13 @@ class VideoProtectModel extends Model
             }
         }
 
+        // Load to s3 cloud and delete local files
+        if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
+            if ($this->loadToS3($config['s3'], $modelVideo)) {
+                return Video::ERROR_FAIL_UPLOAD;
+            }
+        }
+
         return [
             'host'    => $config['scheme'] . '://' . $config['domain'],
             'file_id' => $modelVideo->file_id
@@ -149,6 +157,72 @@ class VideoProtectModel extends Model
 
 
     // MARK: - protected file methods
+
+    /**
+     * Load file to s3 cloud
+     * @param array $config
+     * @param $model
+     * @return mixed
+     */
+    protected function loadToS3($config, $model)
+    {
+        $content_type = 'video/mp4';
+
+        $s3 = new S3($config);
+        $delete_files = [];
+
+        $name = $model->dir . $model->name . '.' . $model->ext;
+
+        // Load original file
+        $result = $s3->putObject($name, ROOT_DIR . $name, ['ContentType' => $content_type]);
+        
+        $is_success = 1;
+
+        if (!empty($result)) {
+            
+            // Update original info
+            $model->host_s3 = $result['host'];
+            $delete_files[] = $name;
+
+            $items = [$model->sizes];
+
+            foreach ($items as $item) {
+
+                if (empty($item)) {
+                    continue;
+                }
+
+                $arr = json_decode($item, true);
+
+                foreach ($arr as $_name) {
+                    
+                    $result = $s3->putObject($_name, ROOT_DIR . $_name, ['ContentType' => $content_type]);
+
+                    if (empty($result)) {
+                        $is_success = 0;
+                        break;
+                    }
+
+                    $delete_files[] = $name;
+                }
+            }
+
+            // Delete local files
+            // todo
+        }
+
+        if ($is_success == 0) {
+
+            // todo: Delete files and db info
+
+            return 0;
+        }
+
+        // Save info
+        $model->save();
+
+        return 1;
+    }
 
     /**
      * Create cover

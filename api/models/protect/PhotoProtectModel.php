@@ -156,58 +156,7 @@ class PhotoProtectModel extends Model
 
         // Load to s3 cloud and delete local files
         if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
-            
-            $s3 = new S3($config['s3']);
-            $delete_files = [];
-
-            // Load original file
-            $result = $s3->putObject($name, $path, ['ContentType' => 'image/jpeg']);
-            
-            $is_fail = 0;
-
-            if (!empty($result)) {
-                
-                // Update original info
-                $modelPhoto->host_s3 = $result['host'];
-                $delete_files[] = $name;
-
-                $items = [$modelPhoto->sizes, $modelPhoto->crop_square, $modelPhoto->crop_custom];
-
-                foreach ($items as $item) {
-
-                    if (empty($item)) {
-                        continue;
-                    }
-
-                    $arr = json_decode($item, true);
-
-                    foreach ($arr as $_name) {
-                        
-                        $result = $s3->putObject($_name, ROOT_DIR . $_name, ['ContentType' => 'image/jpeg']);
-
-                        if (empty($result)) {
-                            $is_fail = 1;
-                            break;
-                        }
-
-                        $delete_files[] = $name;
-                    }
-                }
-
-                // Delete local files
-                // todo
-
-                // Save info
-                $modelPhoto->save();
-
-            } else {
-                $is_fail = 1;
-            }
-
-            if ($is_fail == 1) {
-
-                // todo: Delete files and db info
-
+            if ($this->loadToS3($config['s3'], $modelPhoto)) {
                 return Photo::ERROR_FAIL_UPLOAD;
             }
         }
@@ -315,11 +264,84 @@ class PhotoProtectModel extends Model
         $modelCover->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
         $modelCover->save();
 
+        // Load to s3 cloud and delete local files
+        if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
+            if ($this->loadToS3($config['s3'], $modelCover)) {
+                return Photo::ERROR_FAIL_UPLOAD;
+            }
+        }
+
         return Cover::getInfoProtected([$modelCover])[0];
     }
 
     
     // MARK: - protected file methods
+
+    /**
+     * Load file to s3 cloud
+     * @param array $config
+     * @param $model
+     * @return mixed
+     */
+    protected function loadToS3($config, $model)
+    {
+        $content_type = 'image/jpeg';
+        
+        $s3 = new S3($config);
+        $delete_files = [];
+
+        $name = $model->dir . $model->name . '.' . $model->ext;
+
+        // Load original file
+        $result = $s3->putObject($name, ROOT_DIR . $name, ['ContentType' => $content_type]);
+        
+        $is_success = 1;
+
+        if (!empty($result)) {
+            
+            // Update original info
+            $model->host_s3 = $result['host'];
+            $delete_files[] = $name;
+
+            $items = [$model->sizes, $model->crop_square, $model->crop_custom];
+
+            foreach ($items as $item) {
+
+                if (empty($item)) {
+                    continue;
+                }
+
+                $arr = json_decode($item, true);
+
+                foreach ($arr as $_name) {
+                    
+                    $result = $s3->putObject($_name, ROOT_DIR . $_name, ['ContentType' => $content_type]);
+
+                    if (empty($result)) {
+                        $is_success = 0;
+                        break;
+                    }
+
+                    $delete_files[] = $name;
+                }
+            }
+
+            // Delete local files
+            // todo
+        }
+
+        if ($is_success == 0) {
+
+            // todo: Delete files and db info
+
+            return 0;
+        }
+
+        // Save info
+        $model->save();
+
+        return 1;
+    }
 
     /**
      * Move uploaded file file
