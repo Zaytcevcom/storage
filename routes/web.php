@@ -17,7 +17,7 @@ $app->get('/', function (Request $request, Response $response, $args) {
 // OpenApi
 $app->get('/openapi[/{format}]', function (Request $request, Response $response, $args) use ($config) {
     
-    $openapi = \OpenApi\scan(['api', 'config']);
+    $openapi = \OpenApi\Generator::scan(['api', 'config']);
 
     $controller = new \api\classes\Controller($request, $response, $args);
 

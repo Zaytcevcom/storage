@@ -140,7 +140,7 @@ class AudioProtectModel extends Model
         }
 
         return [
-            'host'    => $config['scheme'] . '://' . $modelAudio->host,
+            'host'    => $config['scheme'] . '://' . $config['domain'],
             'file_id' => $modelAudio->file_id
         ];
     }

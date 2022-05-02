@@ -11,6 +11,7 @@ use api\classes\Entity;
  * @property string $file_id
  * @property int $type
  * @property string $host
+ * @property string|null $host_s3
  * @property string $dir
  * @property string $name
  * @property string $ext
@@ -38,6 +39,7 @@ class Audio extends Entity
         'file_id',
         'type',
         'host',
+        'host_s3',
         'dir',
         'name',
         'ext',
@@ -63,6 +65,7 @@ class Audio extends Entity
         'file_id'               => 'string',
         'type'                  => 'integer',
         'host'                  => 'string',
+        'host_s3'               => 'string',
         'dir'                   => 'string',
         'name'                  => 'string',
         'ext'                   => 'string',

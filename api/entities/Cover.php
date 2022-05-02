@@ -12,6 +12,7 @@ use api\classes\Entity;
  * @property string $media_type
  * @property int $type
  * @property string $host
+ * @property string|null $host_s3
  * @property string $dir
  * @property string $name
  * @property string $ext
@@ -33,6 +34,7 @@ class Cover extends Entity
         'media_type',
         'type',
         'host',
+        'host_s3',
         'dir',
         'name',
         'ext',
@@ -52,6 +54,7 @@ class Cover extends Entity
         'media_type'    => 'string',
         'type'          => 'integer',
         'host'          => 'string',
+        'host_s3'       => 'string',
         'dir'           => 'string',
         'name'          => 'string',
         'ext'           => 'string',

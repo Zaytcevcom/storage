@@ -11,6 +11,7 @@ use api\classes\Entity;
  * @property string $file_id
  * @property int $type
  * @property string $host
+ * @property string|null $host_s3
  * @property string $dir
  * @property string $name
  * @property string $ext
@@ -38,6 +39,7 @@ class Video extends Entity
         'file_id',
         'type',
         'host',
+        'host_s3',
         'dir',
         'name',
         'ext',
@@ -63,6 +65,7 @@ class Video extends Entity
         'file_id'               => 'string',
         'type'                  => 'integer',
         'host'                  => 'string',
+        'host_s3'               => 'string',
         'dir'                   => 'string',
         'name'                  => 'string',
         'ext'                   => 'string',
@@ -111,40 +114,43 @@ class Video extends Entity
 
         foreach ($data as $elem) {
 
+            $host   = (!empty($elem->host_s3)) ? $elem->host_s3 : $elem->host;
+            $scheme = (!empty($elem->host_s3)) ? 'https' : $config['scheme'];
+
             // File sizes
             $src_sizes = (!empty($elem->sizes)) ? json_decode($elem->sizes, true) : [];
 
             foreach ($src_sizes as $key => $value) {
-                $src_sizes[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+                $src_sizes[$key] = $scheme . '://' . $host . $value . '?t=' . $time;
             }
 
             // File cover sizes
             $cover_sizes = (!empty($elem->cover_sizes)) ? json_decode($elem->cover_sizes, true) : [];
 
             foreach ($cover_sizes as $key => $value) {
-                $cover_sizes[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+                $cover_sizes[$key] = $scheme . '://' . $host . $value . '?t=' . $time;
             }
 
             // File cover crop square
             $cover_crop_square = (!empty($elem->cover_crop_square)) ? json_decode($elem->cover_crop_square, true) : [];
 
             foreach ($cover_crop_square as $key => $value) {
-                $cover_crop_square[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+                $cover_crop_square[$key] = $scheme . '://' . $host . $value . '?t=' . $time;
             }
 
             // File cover crop custom
             $cover_crop_custom = (!empty($elem->cover_crop_custom)) ? json_decode($elem->cover_crop_custom, true) : [];
 
             foreach ($cover_crop_custom as $key => $value) {
-                $cover_crop_custom[$key] = $config['scheme'] . '://' . $elem->host . $value . '?t=' . $time;
+                $cover_crop_custom[$key] = $scheme . '://' . $host . $value . '?t=' . $time;
             }
 
             $items[] = [
                 'file_id'           => $elem->file_id,
                 'fields'            => (!empty($elem->fields)) ? json_decode($elem->fields, true) : null,
-                'src'               => $config['scheme'] . '://' . $elem->host . $elem->dir . $elem->name . '.' . $elem->ext,
+                'src'               => $scheme . '://' . $host . $elem->dir . $elem->name . '.' . $elem->ext,
                 'src_sizes'         => $src_sizes,
-                'cover'             => $config['scheme'] . '://' . $elem->host . $elem->cover_dir . $elem->cover_name . '.' . $elem->cover_ext,
+                'cover'             => $scheme . '://' . $host . $elem->cover_dir . $elem->cover_name . '.' . $elem->cover_ext,
                 'cover_sizes'       => (!empty($cover_sizes)) ? $cover_sizes : null,
                 'cover_crop_square' => (!empty($cover_crop_square)) ? $cover_crop_square : null,
                 'cover_crop_custom' => (!empty($cover_crop_custom)) ? $cover_crop_custom : null,

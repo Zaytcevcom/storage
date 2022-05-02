@@ -10,6 +10,7 @@ use api\classes\Model;
 use api\classes\Image;
 use api\entities\Video;
 use getID3;
+use api\classes\S3;
 
 /**
  * PhotoProtectModel
@@ -133,8 +134,9 @@ class PhotoProtectModel extends Model
                 continue;
             }
         }
-
-        $path = ROOT_DIR . $result['dir'] . $result['name'] . '.' . $ext;
+        
+        $name = $result['dir'] . $result['name'] . '.' . $ext;
+        $path = ROOT_DIR . $name;
 
         // Optimize and orientation image
         if ($config['photo']['minSizeOptimize'] < $size) {
@@ -152,8 +154,66 @@ class PhotoProtectModel extends Model
         $modelPhoto->crop_custom = (isset($processing['crop_custom']) && $processing['crop_custom']) ? json_encode($processing['crop_custom']) : null;
         $modelPhoto->save();
 
+        // Load to s3 cloud and delete local files
+        if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
+            
+            $s3 = new S3($config['s3']);
+            $delete_files = [];
+
+            // Load original file
+            $result = $s3->putObject($name, $path, ['ContentType' => 'image/jpeg']);
+            
+            $is_fail = 0;
+
+            if (!empty($result)) {
+                
+                // Update original info
+                $modelPhoto->host_s3 = $result['host'];
+                $delete_files[] = $name;
+
+                $items = [$modelPhoto->sizes, $modelPhoto->crop_square, $modelPhoto->crop_custom];
+
+                foreach ($items as $item) {
+
+                    if (empty($item)) {
+                        continue;
+                    }
+
+                    $arr = json_decode($item, true);
+
+                    foreach ($arr as $_name) {
+                        
+                        $result = $s3->putObject($_name, ROOT_DIR . $_name, ['ContentType' => 'image/jpeg']);
+
+                        if (empty($result)) {
+                            $is_fail = 1;
+                            break;
+                        }
+
+                        $delete_files[] = $name;
+                    }
+                }
+
+                // Delete local files
+                // todo
+
+                // Save info
+                $modelPhoto->save();
+
+            } else {
+                $is_fail = 1;
+            }
+
+            if ($is_fail == 1) {
+
+                // todo: Delete files and db info
+
+                return Photo::ERROR_FAIL_UPLOAD;
+            }
+        }
+
         return [
-            'host'    => $config['scheme'] . '://' . $modelPhoto->host,
+            'host'    => $config['scheme'] . '://' . $config['domain'],
             'file_id' => $modelPhoto->file_id
         ];
     }

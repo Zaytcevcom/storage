@@ -16,6 +16,16 @@ class Controller extends CoreController
 
     public function statistics()
     {
+        global $config;
+
+        if (!isset($config['statistics'])) {
+            return;
+        }
+
+        if ($config['statistics'] != 1) {
+            return;
+        }
+
         if (!isset($this->args['model']) || !isset($this->args['action'])) {
             return;
         }
