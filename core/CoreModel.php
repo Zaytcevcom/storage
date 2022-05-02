@@ -98,11 +98,13 @@ class CoreModel
     {
         global $config;
 
-        if (!$config['redis']['enabled']) {
-            $this->redis = null;
-            return;
+        if (isset($config['redis']) && isset($config['redis']['enabled'])) {
+            if (!$config['redis']['enabled']) {
+                $this->redis = null;
+                return;
+            }
         }
-
+        
         try {
             
             $this->redis = new \Predis\Client([
