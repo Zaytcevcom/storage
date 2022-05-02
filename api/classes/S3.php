@@ -46,6 +46,8 @@ class S3
 
     public function putObject($file_name, $path_source_file, $params = [])
     {
+        $file_name = ltrim($file_name, '/');
+
         if (!isset($params['ACL'])) {
             $params['ACL'] = 'public-read';
         }
