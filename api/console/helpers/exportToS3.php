@@ -31,7 +31,7 @@ while(true)
     $offset += count($models);
 
     foreach ($models as $model) {
-        $PhotoProtectModel->loadToS3($config, $model);
+        $PhotoProtectModel->loadToS3($config['s3'], $model);
     }
 
     echo PHP_EOL . '[Photo] Offset: ' . $offset . PHP_EOL;
@@ -57,7 +57,7 @@ while(true)
     $offset += count($models);
 
     foreach ($models as $model) {
-        $PhotoProtectModel->loadToS3($config, $model);
+        $PhotoProtectModel->loadToS3($config['s3'], $model);
     }
 
     echo PHP_EOL . '[Cover] Offset: ' . $offset . PHP_EOL;
@@ -83,7 +83,7 @@ while(true)
     $offset += count($models);
 
     foreach ($models as $model) {
-        $VideoProtectModel->loadToS3($config, $model);
+        $VideoProtectModel->loadToS3($config['s3'], $model);
     }
 
     echo PHP_EOL . '[Video] Offset: ' . $offset . PHP_EOL;
