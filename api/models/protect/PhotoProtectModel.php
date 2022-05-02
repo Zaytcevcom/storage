@@ -285,6 +285,10 @@ class PhotoProtectModel extends Model
      */
     public function loadToS3($config, $model)
     {
+        if (empty($config)) {
+            return 0;
+        }
+        
         $content_type = 'image/jpeg';
 
         $s3 = new S3($config);

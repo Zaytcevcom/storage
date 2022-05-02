@@ -166,6 +166,10 @@ class VideoProtectModel extends Model
      */
     public function loadToS3($config, $model)
     {
+        if (empty($config)) {
+            return 0;
+        }
+        
         $content_type = 'video/mp4';
 
         $s3 = new S3($config);

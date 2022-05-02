@@ -9,6 +9,8 @@ use api\models\protect\VideoProtectModel;
 $PhotoProtectModel = new PhotoProtectModel();
 $VideoProtectModel = new VideoProtectModel();
 
+global $config;
+
 // Photo
 $offset = 0;
 $count = 100;
