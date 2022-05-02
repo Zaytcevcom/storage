@@ -144,7 +144,7 @@ class VideoProtectModel extends Model
 
         // Load to s3 cloud and delete local files
         if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
-            if ($this->loadToS3($config['s3'], $modelVideo)) {
+            if (!$this->loadToS3($config['s3'], $modelVideo)) {
                 return Video::ERROR_FAIL_UPLOAD;
             }
         }

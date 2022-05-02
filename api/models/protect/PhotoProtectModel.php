@@ -156,7 +156,7 @@ class PhotoProtectModel extends Model
 
         // Load to s3 cloud and delete local files
         if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
-            if ($this->loadToS3($config['s3'], $modelPhoto)) {
+            if (!$this->loadToS3($config['s3'], $modelPhoto)) {
                 return Photo::ERROR_FAIL_UPLOAD;
             }
         }
@@ -266,7 +266,7 @@ class PhotoProtectModel extends Model
 
         // Load to s3 cloud and delete local files
         if (isset($config['s3']) && isset($config['s3']['enable']) && $config['s3']['enable'] == 1) {
-            if ($this->loadToS3($config['s3'], $modelCover)) {
+            if (!$this->loadToS3($config['s3'], $modelCover)) {
                 return Photo::ERROR_FAIL_UPLOAD;
             }
         }
@@ -286,7 +286,7 @@ class PhotoProtectModel extends Model
     protected function loadToS3($config, $model)
     {
         $content_type = 'image/jpeg';
-        
+
         $s3 = new S3($config);
         $delete_files = [];
 
