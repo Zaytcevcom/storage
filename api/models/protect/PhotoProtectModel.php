@@ -283,7 +283,7 @@ class PhotoProtectModel extends Model
      * @param $model
      * @return mixed
      */
-    protected function loadToS3($config, $model)
+    public function loadToS3($config, $model)
     {
         $content_type = 'image/jpeg';
 
