@@ -18,6 +18,7 @@ $count = 100;
 while(true) 
 {
     $models = Photo::where('hide', 0)
+        ->whereNull('host_s3')
         ->orderBy('id', 'ASC')
         ->skip($offset)
         ->take($count)
@@ -44,6 +45,7 @@ $count = 100;
 while(true) 
 {
     $models = Cover::where('hide', 0)
+        ->whereNull('host_s3')
         ->orderBy('id', 'ASC')
         ->skip($offset)
         ->take($count)
@@ -70,6 +72,7 @@ $count = 100;
 while(true) 
 {
     $models = Video::where('hide', 0)
+        ->whereNull('host_s3')
         ->orderBy('id', 'ASC')
         ->skip($offset)
         ->take($count)
