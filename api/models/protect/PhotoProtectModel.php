@@ -346,7 +346,9 @@ class PhotoProtectModel extends Model
         if ($is_success == 0) {
 
             // todo: Delete files and db info
-
+            $model->hide = time();
+            $model->save();
+            
             return 0;
         }
 
