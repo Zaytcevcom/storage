@@ -25,5 +25,10 @@
             "api\\": "api/",
             "core\\": "core/"
         }
+    },
+    "config": {
+        "allow-plugins": {
+            "kylekatarnls/update-helper": true
+        }
     }
 }
