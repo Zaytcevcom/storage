@@ -131,7 +131,7 @@ class Image
      */
     public function getRotate()
     {
-        $exif = exif_read_data($this->path);
+        $exif = @exif_read_data($this->path);
 
         $rotate = 0;
 
