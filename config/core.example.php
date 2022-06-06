@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @OA\Info(title="File Storage API", version="1.0")
- * @OA\Server(url="https://storage-app.ru/method/")
- * @OA\Server(url="http://storage/method/")
- */
 return [
     'version'       => '1.0',
     'domain'        => 'storage-app.ru',

@@ -1,0 +1,60 @@
+version: "3.9"
+services:
+
+    api:
+        build:
+            context: docker
+            dockerfile: development/nginx/Dockerfile
+        ports:
+            - "41080:80"
+        volumes:
+            - .:/app
+        depends_on:
+            - php-fpm
+        networks:
+            - app-network    
+
+    php-fpm:
+        build:
+            context: docker
+            dockerfile: development/php-fpm/Dockerfile
+        environment:
+            APP_ENV: dev
+            APP_DEBUG: 1
+        volumes:
+            - .:/app
+        networks:
+            - app-network    
+
+    php-cli:
+        build:
+            context: docker
+            dockerfile: development/php-cli/Dockerfile
+        volumes:
+            - .:/app
+        networks:
+            - app-network
+
+    db:
+        image: mariadb
+        environment:
+            MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+        volumes:
+            - ./var/mysql:/var/lib/mysql
+        networks:
+            - app-network
+
+    phpmyadmin:
+        image: phpmyadmin
+        restart: always
+        environment:
+            - PMA_ARBITRARY=1
+            - UPLOAD_LIMIT=500M
+        ports:
+            - "41081:80"
+        networks:
+            - app-network
+
+networks:
+    app-network:
+        driver: bridge

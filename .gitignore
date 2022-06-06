@@ -5,9 +5,9 @@
 
 # files dir
 /files
+/var/mysql
 
 # composer vendor dir
-/composer.lock
 /vendor
 
 # Mac DS_Store Files
