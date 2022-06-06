@@ -6,7 +6,7 @@ services:
             context: docker
             dockerfile: development/nginx/Dockerfile
         ports:
-            - "41080:80"
+            - "${PORT_API}:80"
         volumes:
             - .:/app
         depends_on:
@@ -51,7 +51,7 @@ services:
             - PMA_ARBITRARY=1
             - UPLOAD_LIMIT=500M
         ports:
-            - "41081:80"
+            - "${PORT_PMA}:80"
         networks:
             - app-network
 
